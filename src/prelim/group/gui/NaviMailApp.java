@@ -62,15 +62,24 @@ public class NaviMailApp extends JFrame {
 
     private ImageIcon loadIcon(String filename, int width, int height) {
         try {
+            // Relative project path (works across any machine / IDE)
             File file = new File("src/resources/icons/" + filename);
             if (!file.exists()) {
-                file = new File("C:/Users/Ian/Desktop/Media/Icons/" + filename);
+                file = new File("resources/icons/" + filename);
             }
             if (!file.exists()) {
                 file = new File("bin/resources/icons/" + filename);
             }
             if (file.exists()) {
                 ImageIcon original = new ImageIcon(file.getAbsolutePath());
+                Image scaled = original.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
+                return new ImageIcon(scaled);
+            }
+
+            // Classpath fallback for JAR packaging
+            java.net.URL url = getClass().getResource("/resources/icons/" + filename);
+            if (url != null) {
+                ImageIcon original = new ImageIcon(url);
                 Image scaled = original.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
                 return new ImageIcon(scaled);
             }
