@@ -1,157 +1,145 @@
 package prelim.group.filehandler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import prelim.group.model.Email;
+import prelim.group.userHandling.User;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
-import prelim.group.model.Email;
-import prelim.group.userHandling.CurrentUser;
-
 public class FileHandler {
-    ObjectMapper objectMapper;
-    private CurrentUser currentUser;
-    private final File mailFolder = new File("mailFolder");
-    private final File userDetailsFolder = new File("userDetailsFolder");
+    private static FileHandler instance;
+    private static final String DATA_DIR = "mailData";
+    private static final String EMAILS_FILE = DATA_DIR + File.separator + "emails.dat";
+    private static final String USERS_FILE = DATA_DIR + File.separator + "users.dat";
 
-    public FileHandler(CurrentUser user) {
-        this.objectMapper = new ObjectMapper();
-        this.currentUser = user;
-        if (!mailFolder.exists()){
-            mailFolder.mkdirs();
+    private List<User> registeredUsers;
+    private List<Email> emails;
+
+    private FileHandler() {
+        File dir = new File(DATA_DIR);
+        if (!dir.exists()) {
+            dir.mkdirs();
         }
-        if (!userDetailsFolder.exists()){
-            userDetailsFolder.mkdirs();
+        loadUsers();
+        loadEmails();
+        initDefaultUsersIfEmpty();
+    }
+
+    public static synchronized FileHandler getInstance() {
+        if (instance == null) {
+            instance = new FileHandler();
+        }
+        return instance;
+    }
+
+    private void initDefaultUsersIfEmpty() {
+        if (registeredUsers.isEmpty()) {
+            registeredUsers.add(new User("user@mail.com", "pass", "John Doe"));
+            registeredUsers.add(new User("admin@mail.com", "pass", "System Admin"));
+            saveUsers();
         }
     }
 
-    /*
-    ================================ Handles Mail ===========================================
-     */
-    public void saveMail(Email email) throws IOException {
-        File fileToBeSaved = new File(mailFolder, currentUser.toString());
-        objectMapper.writerWithDefaultPrettyPrinter().writeValue(fileToBeSaved, email);
-    }
-
-    public void deleteMail(Email emailToDelete) throws IOException {
-        File userFile = new File(mailFolder, currentUser.toString());
-
-        if (!userFile.exists()) {
-            System.out.println("User file does not exist.");
-            return;
-        }
-
-        // 1. Read existing emails into a List
-        List<Email> emailList = objectMapper.readValue(
-                userFile,
-                objectMapper.getTypeFactory().constructCollectionType(List.class, Email.class)
-        );
-
-        // 2. Iterate through the list using an Iterator to find and remove the matching ID safely
-        boolean removed = false;
-        Iterator<Email> iterator = emailList.iterator();
-
-        while (iterator.hasNext()) {
-            Email email = iterator.next();
-            if (email.getId() == emailToDelete.getId()) {
-                iterator.remove();
-                removed = true;
-                break; // Stop loop once target is found and deleted
+    public boolean userExists(String email) {
+        if (email == null) return false;
+        String target = email.trim().toLowerCase();
+        for (User u : registeredUsers) {
+            if (u.getEmail().toLowerCase().equals(target)) {
+                return true;
             }
         }
+        return false;
+    }
 
-        // 3. Write back to file if removed
-        if (removed) {
-            objectMapper.writerWithDefaultPrettyPrinter().writeValue(userFile, emailList);
-            System.out.println("Email deleted successfully.");
-        } else {
-            System.out.println("Email not found in user file.");
+    @SuppressWarnings("unchecked")
+    private void loadUsers() {
+        File file = new File(USERS_FILE);
+        if (!file.exists()) {
+            registeredUsers = new ArrayList<>();
+            return;
+        }
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+            registeredUsers = (List<User>) ois.readObject();
+        } catch (Exception e) {
+            registeredUsers = new ArrayList<>();
         }
     }
 
-    public List<Email> loadMails() throws IOException {
-        File mailFile = new File(mailFolder, currentUser.toString());
-
-        // Return an empty list if the file doesn't exist yet
-        if (!mailFile.exists() || mailFile.length() == 0) {
-            return new ArrayList<>();
+    public void saveUsers() {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(USERS_FILE))) {
+            oos.writeObject(registeredUsers);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
-        return objectMapper.readValue(
-                mailFile,
-                objectMapper.getTypeFactory().constructCollectionType(List.class, Email.class)
-        );
     }
 
-    public void updateMail(Email updatedEmail) throws IOException {
-        List<Email> emailList = loadMails();
-        boolean updated = false;
+    public List<User> getRegisteredUsers() {
+        return registeredUsers;
+    }
 
-        for (int i = 0; i < emailList.size(); i++) {
-            if (emailList.get(i).getId() == updatedEmail.getId()) {
-                emailList.set(i, updatedEmail);
-                updated = true;
+    public void registerUser(User user) {
+        registeredUsers.add(user);
+        saveUsers();
+    }
+
+    @SuppressWarnings("unchecked")
+    public void loadEmails() {
+        File file = new File(EMAILS_FILE);
+        if (!file.exists()) {
+            emails = new ArrayList<>();
+            return;
+        }
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+            emails = (List<Email>) ois.readObject();
+        } catch (Exception e) {
+            emails = new ArrayList<>();
+        }
+    }
+
+    public void saveEmails() {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(EMAILS_FILE))) {
+            oos.writeObject(emails);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public List<Email> getEmails() {
+        return emails;
+    }
+
+    public void addEmail(Email email) {
+        emails.add(0, email);
+        saveEmails();
+    }
+
+    public void updateEmail(Email updatedEmail) {
+        for (int i = 0; i < emails.size(); i++) {
+            if (emails.get(i).getId().equals(updatedEmail.getId())) {
+                emails.set(i, updatedEmail);
                 break;
             }
         }
-
-        if (updated) {
-            File mailFile = new File(mailFolder, currentUser.toString());
-            objectMapper.writerWithDefaultPrettyPrinter().writeValue(mailFile, emailList);
-            System.out.println("Email updated successfully.");
-        } else {
-            System.out.println("Email not found to update.");
-        }
+        saveEmails();
     }
 
-    /*
-    =================================Handle Users============================================
-     */
-
-    public void saveUser() throws IOException {
-        File fileToBeSaved = new File(userDetailsFolder, currentUser.toString());
-        objectMapper.writerWithDefaultPrettyPrinter().writeValue(fileToBeSaved, currentUser);
-    }
-    public void deleteUser(){
-
+    public void deleteEmail(String emailId) {
+        emails.removeIf(e -> e.getId().equals(emailId));
+        saveEmails();
     }
 
-    public CurrentUser loadUser(String username) throws IOException {
-        File userFile = new File(userDetailsFolder, username);
-
-        if (!userFile.exists()) {
-            System.out.println("User does not exist.");
-            return null;
+    public static void saveEmailToUserFolder(String userEmail, Email email) {
+        File userFolder = new File("mailFolder/" + userEmail);
+        if (!userFolder.exists()) {
+            userFolder.mkdirs(); // Create the folder if it doesn't exist
         }
 
-        return objectMapper.readValue(userFile, CurrentUser.class);
-    }
-
-    public List<CurrentUser> loadAllUsers() throws IOException {
-        List<CurrentUser> users = new ArrayList<>();
-
-        // 1. Check if the folder exists and contains files
-        File[] userFiles = userDetailsFolder.listFiles();
-
-        if (userFiles != null) {
-            // 2. Loop through every file in the directory
-            for (File file : userFiles) {
-                if (file.isFile()) {
-                    try {
-                        // Deserialize each JSON file into a CurrentUser object
-                        CurrentUser user = objectMapper.readValue(file, CurrentUser.class);
-                        users.add(user);
-                    } catch (IOException e) {
-                        System.err.println("Failed to parse user file: " + file.getName());
-                    }
-                }
-            }
+        File emailFile = new File(userFolder, email.getId() + ".dat");
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(emailFile))) {
+            oos.writeObject(email);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
-        return users;
     }
-
 }

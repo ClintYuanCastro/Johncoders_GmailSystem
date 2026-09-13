@@ -1,117 +1,74 @@
 package prelim.group.model;
 
-import prelim.exercises.MyDoublyLinkedList;
-import prelim.exercises.MyList;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
-public class Email {
+public class Email implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private String id;
     private String sender;
     private String recipient;
     private String subject;
-    private String snippet;
     private String body;
-    private String date;
-    private boolean isStarred;
+    private String timestamp;
     private boolean isRead;
-    private String category; // Primary, Promotions, Social, etc.
+    private boolean isImportant;
+    private boolean isArchived;
+    private boolean isTrashed;
+    private boolean isDraft;
+    private List<String> attachments;
 
-    // Inner-most nested lists as required by List of Lists spec!
-    private MyList<String> attachments;
-    private MyList<EmailReply> replies;
-
-    public Email(String id, String sender, String recipient, String subject, String snippet, String body, String date, String category) {
+    public Email(String id, String sender, String recipient, String subject, String body, String timestamp) {
         this.id = id;
         this.sender = sender;
         this.recipient = recipient;
         this.subject = subject;
-        this.snippet = snippet;
         this.body = body;
-        this.date = date;
-        this.isStarred = false;
+        this.timestamp = timestamp;
         this.isRead = false;
-        this.category = category;
-        this.attachments = new MyDoublyLinkedList<>();
-        this.replies = new MyDoublyLinkedList<>();
+        this.isImportant = false;
+        this.isArchived = false;
+        this.isTrashed = false;
+        this.isDraft = false;
+        this.attachments = new ArrayList<>();
     }
 
-    public String getId() {
-        return id;
-    }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
 
-    public String getSender() {
-        return sender;
-    }
+    public String getSender() { return sender; }
+    public void setSender(String sender) { this.sender = sender; }
 
-    public String getRecipient() {
-        return recipient;
-    }
+    public String getRecipient() { return recipient; }
+    public void setRecipient(String recipient) { this.recipient = recipient; }
 
-    public String getSubject() {
-        return subject;
-    }
+    public String getSubject() { return subject; }
+    public void setSubject(String subject) { this.subject = subject; }
 
-    public String getSnippet() {
-        return snippet;
-    }
+    public String getBody() { return body; }
+    public void setBody(String body) { this.body = body; }
 
-    public String getBody() {
-        return body;
-    }
+    public String getTimestamp() { return timestamp; }
+    public void setTimestamp(String timestamp) { this.timestamp = timestamp; }
 
-    public String getDate() {
-        return date;
-    }
+    public boolean isRead() { return isRead; }
+    public void setRead(boolean read) { isRead = read; }
 
-    public boolean isStarred() {
-        return isStarred;
-    }
+    public boolean isImportant() { return isImportant; }
+    public void setImportant(boolean important) { isImportant = important; }
 
-    public void setStarred(boolean starred) {
-        isStarred = starred;
-    }
+    public boolean isArchived() { return isArchived; }
+    public void setArchived(boolean archived) { isArchived = archived; }
 
-    public boolean isRead() {
-        return isRead;
-    }
+    public boolean isTrashed() { return isTrashed; }
+    public void setTrashed(boolean trashed) { isTrashed = trashed; }
 
-    public void setRead(boolean read) {
-        isRead = read;
-    }
+    public boolean isDraft() { return isDraft; }
+    public void setDraft(boolean draft) { isDraft = draft; }
 
-    public String getCategory() {
-        return category;
-    }
-
-    public void setCategory(String category) {
-        this.category = category;
-    }
-
-    public MyList<String> getAttachments() {
-        return attachments;
-    }
-
-    public MyList<EmailReply> getReplies() {
-        return replies;
-    }
-
-    public void addAttachment(String filename) {
-        try {
-            attachments.insert(filename);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void addReply(EmailReply reply) {
-        try {
-            replies.insert(reply);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public String toString() {
-        return sender + " - " + subject + " (" + date + ")";
-    }
+    public List<String> getAttachments() { return attachments; }
+    public void setAttachments(List<String> attachments) { this.attachments = attachments; }
+    public void addAttachment(String path) { this.attachments.add(path); }
 }

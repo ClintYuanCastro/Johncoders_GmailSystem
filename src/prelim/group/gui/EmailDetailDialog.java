@@ -1,189 +1,129 @@
 package prelim.group.gui;
 
+import prelim.group.filehandler.FileHandler;
 import prelim.group.model.Email;
-import prelim.group.model.EmailReply;
-import prelim.exercises.MyList;
 
 import javax.swing.*;
 import java.awt.*;
 
 public class EmailDetailDialog extends JDialog {
-    private Email email;
-    private JPanel repliesPanel;
-    private JPanel attachmentsPanel;
+    private static final Color HEADER_BG = new Color(242, 246, 252);
+    private static final Color TITLE_TEXT = new Color(30, 41, 59);
+    private static final Color MUTED_TEXT = new Color(100, 116, 139);
+    private static final Color ACCENT_BLUE = new Color(11, 87, 208);
+    private static final Color BORDER_LIGHT = new Color(226, 232, 240);
 
-    public EmailDetailDialog(Frame parent, Email email) {
-        super(parent, email.getSubject(), true);
+    private Email email;
+    private Runnable onRefreshCallback;
+
+    public EmailDetailDialog(Frame owner, Email email, Runnable onRefreshCallback) {
+        super(owner, "Email Details", true);
         this.email = email;
-        this.email.setRead(true); // Mark as read
+        this.onRefreshCallback = onRefreshCallback;
+
+        if (!email.isRead()) {
+            email.setRead(true);
+            FileHandler.getInstance().updateEmail(email);
+        }
 
         setSize(650, 580);
-        setLocationRelativeTo(parent);
+        setLocationRelativeTo(owner);
         setLayout(new BorderLayout());
 
-        // Header Panel
+        // Header Panel (Gmail style header)
         JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(new Color(242, 246, 252));
+        headerPanel.setBackground(HEADER_BG);
         headerPanel.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
 
-        JLabel subjectLabel = new JLabel(email.getSubject());
-        subjectLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        subjectLabel.setForeground(new Color(30, 41, 59));
+        JLabel lblSubject = new JLabel("Subject: " + email.getSubject());
+        lblSubject.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblSubject.setForeground(TITLE_TEXT);
 
-        JLabel dateLabel = new JLabel(email.getDate() + " | Category: " + email.getCategory());
-        dateLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        dateLabel.setForeground(new Color(100, 116, 139));
+        JPanel metaPanel = new JPanel(new GridLayout(2, 1, 2, 2));
+        metaPanel.setOpaque(false);
+        JLabel lblFromTo = new JLabel("From: " + email.getSender() + "   |   To: " + email.getRecipient());
+        lblFromTo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblFromTo.setForeground(MUTED_TEXT);
+        JLabel lblDate = new JLabel("Date: " + email.getTimestamp());
+        lblDate.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblDate.setForeground(MUTED_TEXT);
+        metaPanel.add(lblFromTo);
+        metaPanel.add(lblDate);
 
-        headerPanel.add(subjectLabel, BorderLayout.NORTH);
-        headerPanel.add(dateLabel, BorderLayout.SOUTH);
+        headerPanel.add(lblSubject, BorderLayout.NORTH);
+        headerPanel.add(metaPanel, BorderLayout.SOUTH);
         add(headerPanel, BorderLayout.NORTH);
 
-        // Content Panel (Main Body)
-        JPanel mainContent = new JPanel();
-        mainContent.setLayout(new BoxLayout(mainContent, BoxLayout.Y_AXIS));
-        mainContent.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
+        // Body
+        JPanel mainContent = new JPanel(new BorderLayout());
         mainContent.setBackground(Color.WHITE);
+        mainContent.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
 
-        // Sender Info
-        JLabel senderInfo = new JLabel("From: " + email.getSender() + " -> To: " + email.getRecipient());
-        senderInfo.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        senderInfo.setAlignmentX(Component.LEFT_ALIGNMENT);
-        mainContent.add(senderInfo);
-
-        mainContent.add(Box.createVerticalStrut(12));
-
-        // Body Text
-        JTextArea bodyArea = new JTextArea(email.getBody());
-        bodyArea.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        bodyArea.setEditable(false);
-        bodyArea.setLineWrap(true);
-        bodyArea.setWrapStyleWord(true);
-        bodyArea.setAlignmentX(Component.LEFT_ALIGNMENT);
-        bodyArea.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(226, 232, 240)),
+        JTextArea txtBody = new JTextArea(email.getBody());
+        txtBody.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        txtBody.setEditable(false);
+        txtBody.setLineWrap(true);
+        txtBody.setWrapStyleWord(true);
+        txtBody.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_LIGHT),
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
-        mainContent.add(bodyArea);
+        mainContent.add(new JScrollPane(txtBody), BorderLayout.CENTER);
 
-        mainContent.add(Box.createVerticalStrut(15));
+        add(mainContent, BorderLayout.CENTER);
 
-        // Attachments Section (Inner-most MyList<String>)
-        JLabel attachHeader = new JLabel("Attachments (Inner MyList<String>):");
-        attachHeader.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        attachHeader.setAlignmentX(Component.LEFT_ALIGNMENT);
-        mainContent.add(attachHeader);
+        // Bottom Action Bar
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        bottomPanel.setBackground(HEADER_BG);
 
-        attachmentsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
-        attachmentsPanel.setBackground(Color.WHITE);
-        attachmentsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        refreshAttachments();
-
-        mainContent.add(attachmentsPanel);
-
-        JButton addAttachBtn = new JButton("+ Add Attachment");
-        addAttachBtn.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        addAttachBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
-        addAttachBtn.addActionListener(e -> {
-            String fileName = JOptionPane.showInputDialog(this, "Enter attachment filename (e.g. document.pdf):");
-            if (fileName != null && !fileName.trim().isEmpty()) {
-                email.addAttachment(fileName.trim());
-                refreshAttachments();
-            }
+        JButton btnToggleRead = new JButton(email.isRead() ? "Mark Unread" : "Mark Read");
+        styleActionButton(btnToggleRead);
+        btnToggleRead.addActionListener(e -> {
+            email.setRead(!email.isRead());
+            FileHandler.getInstance().updateEmail(email);
+            if (onRefreshCallback != null) onRefreshCallback.run();
+            dispose();
         });
-        mainContent.add(addAttachBtn);
 
-        mainContent.add(Box.createVerticalStrut(15));
-
-        // Replies Section (Inner-most MyList<EmailReply>)
-        JLabel repliesHeader = new JLabel("Replies Thread (Inner MyList<EmailReply>):");
-        repliesHeader.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        repliesHeader.setAlignmentX(Component.LEFT_ALIGNMENT);
-        mainContent.add(repliesHeader);
-
-        repliesPanel = new JPanel();
-        repliesPanel.setLayout(new BoxLayout(repliesPanel, BoxLayout.Y_AXIS));
-        repliesPanel.setBackground(Color.WHITE);
-        repliesPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        refreshReplies();
-
-        mainContent.add(repliesPanel);
-
-        // Add Reply Button
-        JButton addReplyBtn = new JButton("+ Reply to Thread");
-        addReplyBtn.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        addReplyBtn.setBackground(new Color(11, 87, 208));
-        addReplyBtn.setForeground(Color.WHITE);
-        addReplyBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
-        addReplyBtn.addActionListener(e -> {
-            String replyText = JOptionPane.showInputDialog(this, "Enter your reply message:");
-            if (replyText != null && !replyText.trim().isEmpty()) {
-                EmailReply reply = new EmailReply("user@navimail.com", "Just now", replyText.trim());
-                email.addReply(reply);
-                refreshReplies();
-            }
+        JButton btnArchive = new JButton(email.isArchived() ? "Unarchive" : "Archive");
+        styleActionButton(btnArchive);
+        btnArchive.addActionListener(e -> {
+            email.setArchived(!email.isArchived());
+            FileHandler.getInstance().updateEmail(email);
+            if (onRefreshCallback != null) onRefreshCallback.run();
+            dispose();
         });
-        mainContent.add(Box.createVerticalStrut(8));
-        mainContent.add(addReplyBtn);
 
-        JScrollPane scrollPane = new JScrollPane(mainContent);
-        scrollPane.setBorder(null);
-        add(scrollPane, BorderLayout.CENTER);
+        JButton btnTrash = new JButton(email.isTrashed() ? "Restore" : "Move to Trash");
+        styleActionButton(btnTrash);
+        btnTrash.addActionListener(e -> {
+            email.setTrashed(!email.isTrashed());
+            FileHandler.getInstance().updateEmail(email);
+            if (onRefreshCallback != null) onRefreshCallback.run();
+            dispose();
+        });
+
+        JButton btnClose = new JButton("Close");
+        btnClose.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnClose.setBackground(ACCENT_BLUE);
+        btnClose.setForeground(Color.WHITE);
+        btnClose.setFocusPainted(false);
+        btnClose.setBorder(BorderFactory.createEmptyBorder(6, 16, 6, 16));
+        btnClose.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnClose.addActionListener(e -> dispose());
+
+        bottomPanel.add(btnToggleRead);
+        bottomPanel.add(btnArchive);
+        bottomPanel.add(btnTrash);
+        bottomPanel.add(btnClose);
+
+        add(bottomPanel, BorderLayout.SOUTH);
     }
 
-    private void refreshAttachments() {
-        attachmentsPanel.removeAll();
-        MyList<String> list = email.getAttachments();
-        if (list.getSize() == 0) {
-            JLabel emptyLabel = new JLabel("No attachments.");
-            emptyLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
-            emptyLabel.setForeground(Color.GRAY);
-            attachmentsPanel.add(emptyLabel);
-        } else {
-            for (int i = 0; i < list.getSize(); i++) {
-                JLabel tag = new JLabel("📎 " + list.getElement(i));
-                tag.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-                tag.setOpaque(true);
-                tag.setBackground(new Color(238, 242, 246));
-                tag.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
-                attachmentsPanel.add(tag);
-            }
-        }
-        attachmentsPanel.revalidate();
-        attachmentsPanel.repaint();
-    }
-
-    private void refreshReplies() {
-        repliesPanel.removeAll();
-        MyList<EmailReply> list = email.getReplies();
-        if (list.getSize() == 0) {
-            JLabel emptyLabel = new JLabel("No replies yet.");
-            emptyLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
-            emptyLabel.setForeground(Color.GRAY);
-            repliesPanel.add(emptyLabel);
-        } else {
-            for (int i = 0; i < list.getSize(); i++) {
-                EmailReply reply = list.getElement(i);
-                JPanel rCard = new JPanel(new BorderLayout());
-                rCard.setBackground(new Color(248, 250, 252));
-                rCard.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(new Color(226, 232, 240)),
-                        BorderFactory.createEmptyBorder(8, 10, 8, 10)
-                ));
-
-                JLabel rHead = new JLabel(reply.getSender() + " (" + reply.getDate() + "):");
-                rHead.setFont(new Font("Segoe UI", Font.BOLD, 11));
-
-                JLabel rBody = new JLabel(reply.getContent());
-                rBody.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-
-                rCard.add(rHead, BorderLayout.NORTH);
-                rCard.add(rBody, BorderLayout.SOUTH);
-
-                repliesPanel.add(rCard);
-                repliesPanel.add(Box.createVerticalStrut(6));
-            }
-        }
-        repliesPanel.revalidate();
-        repliesPanel.repaint();
+    private void styleActionButton(JButton btn) {
+        btn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btn.setForeground(TITLE_TEXT);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 }

@@ -1,11 +1,9 @@
 package prelim.group.gui;
 
-import prelim.exercises.MyDoublyLinkedList;
-import prelim.exercises.MyList;
 import prelim.group.filehandler.FileHandler;
 import prelim.group.model.Email;
-import prelim.group.model.EmailCategory;
 import prelim.group.userHandling.CurrentUser;
+import prelim.group.userHandling.User;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -15,60 +13,65 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class NaviMailApp extends JFrame {
-    // Outer Data Structure: MyList of EmailCategory
-    private MyList<EmailCategory> categories;
-    private EmailCategory currentCategory;
-    private FileHandler fileHandler;
+    private static final int ITEMS_PER_PAGE = 8;
+
+    // Navy Gmail-style palette (matches System 1 look & feel)
+    private static final Color NAVY_BG = new Color(6, 50, 79);
+    private static final Color NAVY_ACTIVE = new Color(0, 77, 122);
+    private static final Color SEARCH_BG = new Color(234, 241, 251);
+    private static final Color ACCENT_BLUE = new Color(11, 87, 208);
+    private static final Color COMPOSE_PILL = new Color(194, 231, 255);
+    private static final Color MUTED_TEXT = new Color(100, 116, 139);
+    private static final Color BORDER_LIGHT = new Color(226, 232, 240);
+
+    private String activeTab = "INBOX";
+    private int currentPage = 1;
 
     // UI Components
-    private JTextField searchField;
+    private JTextField txtSearch;
     private JTable emailTable;
     private DefaultTableModel tableModel;
-    private JLabel paginationLabel;
+    private JLabel lblPageInfo;
+    private JButton btnPrevPage;
+    private JButton btnNextPage;
+    private JCheckBox chkSelectAll;
+    private JLabel lblUserProfile;
     private JLabel inboxBadgeLabel;
-    private JButton primaryTabBtn, promoTabBtn, socialTabBtn;
-    private String activeTabName = "Primary";
-    private java.util.List<JPanel> sidebarPanels = new ArrayList<>();
+    private JLabel sectionTitleLabel;
+    private final List<JPanel> sidebarPanels = new ArrayList<>();
 
-    public NaviMailApp(CurrentUser user) {
-        super("Gmail - email");
-        this.fileHandler= new FileHandler(user);
+    private List<Email> currentFilteredEmails = new ArrayList<>();
+    private List<Email> pageEmails = new ArrayList<>();
+
+    public NaviMailApp() {
+        setTitle("Mail Client");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1280, 800);
         setLocationRelativeTo(null);
 
-        // Initialize Data Structure (List of Lists)
-        initDataStructure();
-
-        // Main Container Panel with Navy Background
         JPanel rootPanel = new JPanel(new BorderLayout());
-        rootPanel.setBackground(new Color(6, 50, 79)); // Dark Navy #06324F matching screenshot
+        rootPanel.setBackground(NAVY_BG);
 
-        // Top Navigation Header Bar
-        rootPanel.add(createTopHeaderPanel(), BorderLayout.NORTH);
+        rootPanel.add(createTopHeader(), BorderLayout.NORTH);
 
-        // Center Content Split (Left Sidebar + Center Rounded Card + Right Toolbar)
         JPanel bodyPanel = new JPanel(new BorderLayout());
         bodyPanel.setOpaque(false);
-
-        bodyPanel.add(createLeftSidebarPanel(), BorderLayout.WEST);
+        bodyPanel.add(createLeftNavigation(), BorderLayout.WEST);
         bodyPanel.add(createMainContentCard(), BorderLayout.CENTER);
 
         rootPanel.add(bodyPanel, BorderLayout.CENTER);
         setContentPane(rootPanel);
 
-        // Initial Load
-        switchCategory("Primary");
+        refreshEmailList();
     }
 
     private ImageIcon loadIcon(String filename, int width, int height) {
         try {
-            // Relative project path (works across any machine / IDE)
             File file = new File("src/resources/icons/" + filename);
             if (!file.exists()) {
                 file = new File("resources/icons/" + filename);
@@ -82,7 +85,6 @@ public class NaviMailApp extends JFrame {
                 return new ImageIcon(scaled);
             }
 
-            // Classpath fallback for JAR packaging
             java.net.URL url = getClass().getResource("/resources/icons/" + filename);
             if (url != null) {
                 ImageIcon original = new ImageIcon(url);
@@ -95,107 +97,51 @@ public class NaviMailApp extends JFrame {
         return null;
     }
 
-    private void initDataStructure() {
-        categories = new MyDoublyLinkedList<>();
-
-        EmailCategory primary = new EmailCategory("Primary");
-        EmailCategory promotions = new EmailCategory("Promotions");
-        EmailCategory social = new EmailCategory("Social");
-        EmailCategory starredCat = new EmailCategory("Starred");
-        EmailCategory sentCat = new EmailCategory("Sent");
-        EmailCategory draftsCat = new EmailCategory("Drafts");
-        EmailCategory workCat = new EmailCategory("Work");
-        EmailCategory personalCat = new EmailCategory("Personal");
-        EmailCategory teamCat = new EmailCategory("Team");
-        EmailCategory newsCat = new EmailCategory("News");
-
-        try {
-            categories.insert(primary);
-            categories.insert(promotions);
-            categories.insert(social);
-            categories.insert(starredCat);
-            categories.insert(sentCat);
-            categories.insert(draftsCat);
-            categories.insert(workCat);
-            categories.insert(personalCat);
-            categories.insert(teamCat);
-            categories.insert(newsCat);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        // Add single email from Clint Castro as requested
-        Email clintEmail = new Email(
-                "1",
-                "Clint Castro",
-                "user@navimail.com",
-                "IT212 stuff something something to be done",
-                "IT212 stuff something something to be done",
-                "Please review and complete the required IT212 stuff and tasks as soon as possible.",
-                "Jan, 26",
-                "Primary"
-        );
-        clintEmail.addAttachment("IT212_Task_Guide.pdf");
-        clintEmail.addReply(new prelim.group.model.EmailReply("clint.castro@slu.edu.ph", "Jan, 26", "Let me know once this is done."));
-
-        primary.addEmail(clintEmail);
-        try {
-            List <Email> savedMails = fileHandler.loadMails();
-            for (Email email : savedMails) {
-                EmailCategory targetCat = findCategory(email.getCategory());
-                if (targetCat != null) {
-                    targetCat.addEmailToTop(email);
-                } else {
-                    primary.addEmailToTop(email);
-                }
-            }
-        } catch (IOException e) { e.printStackTrace(); }
-        currentCategory = primary;
-    }
-
-    private JPanel createTopHeaderPanel() {
+    // ---------------------------------------------------------------
+    // Top Header: hamburger + mascot + brand, search bar, profile/sign out
+    // ---------------------------------------------------------------
+    private JPanel createTopHeader() {
         JPanel header = new JPanel(new BorderLayout(15, 0));
         header.setOpaque(false);
         header.setBorder(new EmptyBorder(10, 20, 10, 20));
 
-        // Left Branding: Hamburger Menu + Bear Mascot + "NaviMail"
+        // Left Branding
         JPanel leftBrand = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         leftBrand.setOpaque(false);
 
-        JLabel menuBtn = new JLabel("≡");
+        JLabel menuBtn = new JLabel("\u2261");
         menuBtn.setFont(new Font("Segoe UI", Font.BOLD, 22));
         menuBtn.setForeground(Color.WHITE);
         menuBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        // Navi mascot icon + NaviMail text
         JLabel mascotLabel = new JLabel();
-        ImageIcon naviImg = loadIcon("navi.png", 48, 48);
+        ImageIcon naviImg = loadIcon("navi.png", 40, 40);
         if (naviImg != null) {
             mascotLabel.setIcon(naviImg);
         } else {
-            mascotLabel.setText("🐻");
-            mascotLabel.setFont(new Font("Segoe UI", Font.PLAIN, 24));
+            mascotLabel.setText("\uD83D\uDC3B");
+            mascotLabel.setFont(new Font("Segoe UI", Font.PLAIN, 22));
         }
 
-        JLabel brandText = new JLabel("NaviMail");
-        brandText.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        brandText.setForeground(Color.WHITE);
+        JLabel lblLogo = new JLabel("NaviMail");
+        lblLogo.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        lblLogo.setForeground(Color.WHITE);
 
         leftBrand.add(menuBtn);
         leftBrand.add(mascotLabel);
-        leftBrand.add(brandText);
+        leftBrand.add(lblLogo);
         header.add(leftBrand, BorderLayout.WEST);
 
-        // Center Search Bar: Rounded Search Mail Field
+        // Center Search Bar
         JPanel searchContainer = new JPanel(new BorderLayout());
         searchContainer.setOpaque(false);
         searchContainer.setBorder(new EmptyBorder(0, 40, 0, 40));
 
         JPanel searchBar = new JPanel(new BorderLayout(8, 0));
-        searchBar.setBackground(new Color(234, 241, 251)); // #EAF1FB light blue/grey
+        searchBar.setBackground(SEARCH_BG);
         searchBar.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(234, 241, 251), 1, true),
-                new EmptyBorder(8, 16, 8, 16)
+                BorderFactory.createLineBorder(SEARCH_BG, 1, true),
+                new EmptyBorder(6, 16, 6, 10)
         ));
 
         JLabel searchIcon = new JLabel();
@@ -203,72 +149,45 @@ public class NaviMailApp extends JFrame {
         if (searchImg != null) {
             searchIcon.setIcon(searchImg);
         } else {
-            searchIcon.setText("🔍");
-            searchIcon.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-            searchIcon.setForeground(new Color(100, 116, 139));
+            searchIcon.setText("\uD83D\uDD0D");
+            searchIcon.setForeground(MUTED_TEXT);
         }
 
-        searchField = new JTextField("Search mail");
-        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        searchField.setForeground(new Color(100, 116, 139));
-        searchField.setBorder(null);
-        searchField.setOpaque(false);
-
-        // Search Field Focus Listener & Dynamic Filter
-        searchField.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override
-            public void focusGained(java.awt.event.FocusEvent evt) {
-                if (searchField.getText().equals("Search mail")) {
-                    searchField.setText("");
-                    searchField.setForeground(Color.BLACK);
-                }
-            }
-            @Override
-            public void focusLost(java.awt.event.FocusEvent evt) {
-                if (searchField.getText().trim().isEmpty()) {
-                    searchField.setText("Search mail");
-                    searchField.setForeground(new Color(100, 116, 139));
-                }
-            }
-        });
-
-        searchField.addKeyListener(new java.awt.event.KeyAdapter() {
+        txtSearch = new JTextField();
+        txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        txtSearch.setBorder(null);
+        txtSearch.setOpaque(false);
+        txtSearch.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
             public void keyReleased(java.awt.event.KeyEvent evt) {
-                filterEmailList(searchField.getText().trim());
+                refreshEmailList();
             }
         });
 
-        JLabel filterIcon = new JLabel();
-        ImageIcon settingImg = loadIcon("setting.png", 18, 18);
-        if (settingImg != null) {
-            filterIcon.setIcon(settingImg);
-        } else {
-            filterIcon.setText("⚙");
-            filterIcon.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-            filterIcon.setForeground(new Color(100, 116, 139));
-        }
-        filterIcon.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JButton btnSearch = new JButton("Search");
+        btnSearch.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btnSearch.setContentAreaFilled(false);
+        btnSearch.setFocusPainted(false);
+        btnSearch.setForeground(ACCENT_BLUE);
+        btnSearch.setBorder(new EmptyBorder(0, 8, 0, 0));
+        btnSearch.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnSearch.addActionListener(e -> refreshEmailList());
 
         searchBar.add(searchIcon, BorderLayout.WEST);
-        searchBar.add(searchField, BorderLayout.CENTER);
-        searchBar.add(filterIcon, BorderLayout.EAST);
+        searchBar.add(txtSearch, BorderLayout.CENTER);
+        searchBar.add(btnSearch, BorderLayout.EAST);
         searchContainer.add(searchBar, BorderLayout.CENTER);
         header.add(searchContainer, BorderLayout.CENTER);
 
-        // Right Icons: Settings & Profile Avatar
-        JPanel rightIcons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
+        // Right: user profile, avatar, sign out
+        JPanel rightIcons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         rightIcons.setOpaque(false);
 
-        JLabel settingsIcon = new JLabel();
-        ImageIcon setIconImg = loadIcon("setting.png", 20, 20);
-        if (setIconImg != null) {
-            settingsIcon.setIcon(setIconImg);
-        } else {
-            settingsIcon.setText("⚙");
-            settingsIcon.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-            settingsIcon.setForeground(Color.WHITE);
-        }
+        User currentUser = CurrentUser.getInstance().getUser();
+        String userDisplay = currentUser != null ? currentUser.getFullName() + " (" + currentUser.getEmail() + ")" : "Guest";
+        lblUserProfile = new JLabel(userDisplay);
+        lblUserProfile.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblUserProfile.setForeground(Color.WHITE);
 
         JLabel avatarLabel = new JLabel();
         ImageIcon accountImg = loadIcon("account.png", 28, 28);
@@ -277,110 +196,87 @@ public class NaviMailApp extends JFrame {
         } else {
             avatarLabel.setText(" I ");
             avatarLabel.setOpaque(true);
-            avatarLabel.setBackground(new Color(11, 87, 208));
+            avatarLabel.setBackground(ACCENT_BLUE);
             avatarLabel.setForeground(Color.WHITE);
             avatarLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
             avatarLabel.setPreferredSize(new Dimension(32, 32));
             avatarLabel.setBorder(BorderFactory.createLineBorder(Color.WHITE, 1, true));
         }
 
-        rightIcons.add(settingsIcon);
+        JButton btnSignOut = new JButton("Sign Out");
+        btnSignOut.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btnSignOut.setForeground(Color.WHITE);
+        btnSignOut.setContentAreaFilled(false);
+        btnSignOut.setFocusPainted(false);
+        btnSignOut.setBorder(BorderFactory.createLineBorder(Color.WHITE, 1, true));
+        btnSignOut.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnSignOut.addActionListener(e -> processSignOut());
+
+        rightIcons.add(lblUserProfile);
         rightIcons.add(avatarLabel);
+        rightIcons.add(btnSignOut);
 
         header.add(rightIcons, BorderLayout.EAST);
         return header;
     }
 
-    private JPanel createLeftSidebarPanel() {
+    // ---------------------------------------------------------------
+    // Left Sidebar: Compose pill + navigation tabs
+    // ---------------------------------------------------------------
+    private JPanel createLeftNavigation() {
         JPanel sidebar = new JPanel();
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
         sidebar.setOpaque(false);
         sidebar.setPreferredSize(new Dimension(220, 0));
         sidebar.setBorder(new EmptyBorder(10, 15, 10, 15));
 
-        // Compose Button (Pill button `#C2E7FF` / `#A8C7FA` light cyan with compose.png icon)
-        JButton composeBtn = new JButton(" Compose");
+        JButton btnCompose = new JButton(" + Compose");
         ImageIcon composeImg = loadIcon("compose.png", 20, 20);
         if (composeImg != null) {
-            composeBtn.setIcon(composeImg);
+            btnCompose.setIcon(composeImg);
         }
-        composeBtn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        composeBtn.setBackground(new Color(194, 231, 255)); // #C2E7FF cyan blue
-        composeBtn.setForeground(new Color(0, 29, 53));
-        composeBtn.setFocusPainted(false);
-        composeBtn.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-        composeBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        composeBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        composeBtn.addActionListener(e -> {
-            ComposeDialog dialog = new ComposeDialog(this, categories);
+        btnCompose.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnCompose.setBackground(COMPOSE_PILL);
+        btnCompose.setForeground(new Color(0, 29, 53));
+        btnCompose.setFocusPainted(false);
+        btnCompose.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        btnCompose.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnCompose.setAlignmentX(Component.LEFT_ALIGNMENT);
+        btnCompose.setMaximumSize(new Dimension(220, 44));
+        btnCompose.addActionListener(e -> {
+            ComposeDialog dialog = new ComposeDialog(this, null, this::refreshEmailList);
             dialog.setVisible(true);
-            if (dialog.isSent() && dialog.getCreatedEmail() != null) {
-                Email created = dialog.getCreatedEmail();
-                // Find matching category or add to Primary
-                EmailCategory targetCat = findCategory(created.getCategory());
-                if (targetCat != null) {
-                    targetCat.addEmailToTop(created);
-                } else {
-                    currentCategory.addEmailToTop(created);
-                }
-                try {
-                    fileHandler.saveMail(created);
-                }catch (IOException ex){ ex.printStackTrace();}
-                refreshEmailTable();
-                updateInboxBadge();
-            }
         });
 
-        sidebar.add(composeBtn);
+        sidebar.add(btnCompose);
         sidebar.add(Box.createVerticalStrut(20));
 
-        // Navigation Items using icon images (mail-inbox-app.png, star.png, snooze.png, sent.png, draft.png)
-        inboxBadgeLabel = new JLabel("14");
+        inboxBadgeLabel = new JLabel("0");
         inboxBadgeLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
         inboxBadgeLabel.setForeground(Color.WHITE);
 
-        sidebar.add(createNavItem("Inbox", "mail-inbox-app.png", true, inboxBadgeLabel, e -> switchCategory("Primary")));
-        sidebar.add(createNavItem("Starred", "star.png", false, null, e -> switchCategory("Starred")));
-        sidebar.add(createNavItem("Snoozed", "snooze.png", false, null, e -> switchCategory("Primary")));
-        sidebar.add(createNavItem("Sent", "sent.png", false, null, e -> switchCategory("Sent")));
-        sidebar.add(createNavItem("Drafts", "draft.png", false, null, e -> switchCategory("Drafts")));
-        sidebar.add(createNavItem("More", null, false, null, null));
-
-        sidebar.add(Box.createVerticalStrut(25));
-
-        // Labels Section
-        JLabel labelsHeader = new JLabel("Labels");
-        labelsHeader.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        labelsHeader.setForeground(Color.WHITE);
-        labelsHeader.setAlignmentX(Component.LEFT_ALIGNMENT);
-        sidebar.add(labelsHeader);
-        sidebar.add(Box.createVerticalStrut(10));
-
-        sidebar.add(createLabelItem("Categories", "tag.png", null, e -> switchCategory("Primary")));
-        sidebar.add(createLabelItem("Team", "multiple-users-silhouette.png", new Color(34, 197, 94), e -> switchCategory("Team")));
-        sidebar.add(createLabelItem("News", "tag.png", new Color(234, 179, 8), e -> switchCategory("News")));
-        sidebar.add(createLabelItem("Work", "tag.png", new Color(59, 130, 246), e -> switchCategory("Work")));
-        sidebar.add(createLabelItem("Personal", "tag.png", new Color(239, 68, 68), e -> switchCategory("Personal")));
+        sidebar.add(createNavItem("Inbox", "mail-inbox-app.png", "INBOX", true, inboxBadgeLabel));
+        sidebar.add(createNavItem("Drafts", "draft.png", "DRAFTS", false, null));
+        sidebar.add(createNavItem("Important", "star.png", "IMPORTANT", false, null));
+        sidebar.add(createNavItem("Archive", "tag.png", "ARCHIVE", false, null));
+        sidebar.add(createNavItem("Trash", "trashbin.png", "TRASH", false, null));
+        sidebar.add(createNavItem("Unread / Read", "snooze.png", "UNREAD", false, null));
 
         return sidebar;
     }
 
-    private JPanel createNavItem(String text, String iconName, boolean active, JLabel badge, java.awt.event.ActionListener listener) {
+    private JPanel createNavItem(String text, String iconName, String tabKey, boolean active, JLabel badge) {
         JPanel navItem = new JPanel(new BorderLayout(10, 0));
         navItem.setOpaque(true);
         navItem.setMaximumSize(new Dimension(200, 36));
         navItem.setPreferredSize(new Dimension(200, 36));
         navItem.setCursor(new Cursor(Cursor.HAND_CURSOR));
         navItem.setBorder(new EmptyBorder(6, 16, 6, 16));
+        navItem.setAlignmentX(Component.LEFT_ALIGNMENT);
+        navItem.putClientProperty("tabKey", tabKey);
 
         sidebarPanels.add(navItem);
-
-        if (active) {
-            navItem.setBackground(new Color(0, 77, 122)); // Active highlighted blue pill
-        } else {
-            navItem.setBackground(new Color(6, 50, 79));
-        }
+        navItem.setBackground(active ? NAVY_ACTIVE : NAVY_BG);
 
         JLabel label = new JLabel(text);
         label.setFont(new Font("Segoe UI", active ? Font.BOLD : Font.PLAIN, 13));
@@ -402,69 +298,22 @@ public class NaviMailApp extends JFrame {
             @Override
             public void mouseClicked(MouseEvent e) {
                 setActiveSidebarItem(navItem);
-                if (listener != null) {
-                    listener.actionPerformed(null);
-                }
+                activeTab = tabKey;
+                currentPage = 1;
+                refreshEmailList();
             }
         });
 
-        navItem.setAlignmentX(Component.LEFT_ALIGNMENT);
         return navItem;
-    }
-
-    private JPanel createLabelItem(String text, String iconName, Color indicatorColor, java.awt.event.ActionListener listener) {
-        JPanel item = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
-        item.setOpaque(true);
-        item.setBackground(new Color(6, 50, 79));
-        item.setMaximumSize(new Dimension(200, 32));
-        item.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        sidebarPanels.add(item);
-
-        JLabel label = new JLabel(text);
-        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        label.setForeground(new Color(226, 232, 240));
-
-        if (iconName != null) {
-            ImageIcon icon = loadIcon(iconName, 16, 16);
-            if (icon != null) {
-                label.setIcon(icon);
-            }
-        }
-
-        item.add(label);
-
-        item.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                setActiveSidebarItem(item);
-                if (listener != null) {
-                    listener.actionPerformed(null);
-                }
-            }
-        });
-
-        item.setAlignmentX(Component.LEFT_ALIGNMENT);
-        return item;
     }
 
     private void setActiveSidebarItem(JPanel selectedPanel) {
         for (JPanel panel : sidebarPanels) {
-            if (panel == selectedPanel) {
-                panel.setBackground(new Color(0, 77, 122)); // Active highlighted blue pill
-                for (Component comp : panel.getComponents()) {
-                    if (comp instanceof JLabel) {
-                        comp.setFont(new Font("Segoe UI", Font.BOLD, 13));
-                        comp.setForeground(Color.WHITE);
-                    }
-                }
-            } else {
-                panel.setBackground(new Color(6, 50, 79)); // Inactive state
-                for (Component comp : panel.getComponents()) {
-                    if (comp instanceof JLabel && comp != inboxBadgeLabel) {
-                        comp.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-                        comp.setForeground(new Color(226, 232, 240));
-                    }
+            boolean isSelected = (panel == selectedPanel);
+            panel.setBackground(isSelected ? NAVY_ACTIVE : NAVY_BG);
+            for (Component comp : panel.getComponents()) {
+                if (comp instanceof JLabel && comp != inboxBadgeLabel) {
+                    comp.setFont(new Font("Segoe UI", isSelected ? Font.BOLD : Font.PLAIN, 13));
                 }
             }
             panel.revalidate();
@@ -472,94 +321,118 @@ public class NaviMailApp extends JFrame {
         }
     }
 
+    // ---------------------------------------------------------------
+    // Main White Card: section header, action toolbar, table, pagination
+    // ---------------------------------------------------------------
     private JPanel createMainContentCard() {
         JPanel card = new JPanel(new BorderLayout());
         card.setBackground(Color.WHITE);
         card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(226, 232, 240), 1, true),
+                BorderFactory.createLineBorder(BORDER_LIGHT, 1, true),
                 new EmptyBorder(10, 15, 10, 15)
         ));
 
-        // Top Action Bar inside White Card (Checkbox, Refresh, 3-dots, Delete, Pagination)
+        // Section title (reflects active nav tab), styled like an active tab underline
+        JPanel sectionBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        sectionBar.setOpaque(false);
+        sectionBar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_LIGHT));
+
+        sectionTitleLabel = new JLabel("Inbox");
+        sectionTitleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        sectionTitleLabel.setForeground(ACCENT_BLUE);
+        sectionTitleLabel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 3, 0, ACCENT_BLUE),
+                new EmptyBorder(8, 4, 8, 20)
+        ));
+        sectionBar.add(sectionTitleLabel);
+
+        // Action Toolbar
         JPanel topToolbar = new JPanel(new BorderLayout());
         topToolbar.setOpaque(false);
-        topToolbar.setBorder(new EmptyBorder(5, 5, 10, 5));
+        topToolbar.setBorder(new EmptyBorder(8, 5, 8, 5));
 
-        JPanel leftActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        JPanel leftActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         leftActions.setOpaque(false);
 
-        JCheckBox selectAllBox = new JCheckBox();
-        selectAllBox.setOpaque(false);
-        selectAllBox.addActionListener(e -> {
-            boolean sel = selectAllBox.isSelected();
+        chkSelectAll = new JCheckBox("Select All");
+        chkSelectAll.setOpaque(false);
+        chkSelectAll.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        chkSelectAll.addActionListener(e -> {
+            boolean sel = chkSelectAll.isSelected();
             for (int i = 0; i < tableModel.getRowCount(); i++) {
                 tableModel.setValueAt(sel, i, 0);
             }
         });
 
-        JButton deleteBtn = new JButton(" Delete Selected");
+        JButton btnDelete = new JButton(" Delete Selected");
         ImageIcon trashImg = loadIcon("trashbin.png", 16, 16);
         if (trashImg != null) {
-            deleteBtn.setIcon(trashImg);
+            btnDelete.setIcon(trashImg);
         }
-        deleteBtn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        deleteBtn.setFocusPainted(false);
-        deleteBtn.addActionListener(e -> deleteSelectedEmails());
+        styleToolbarButton(btnDelete);
+        btnDelete.addActionListener(e -> processDeleteSelected());
 
-        leftActions.add(selectAllBox);
-        leftActions.add(deleteBtn);
+        JButton btnMarkReadUnread = new JButton("Mark as Read / Unread");
+        styleToolbarButton(btnMarkReadUnread);
+        btnMarkReadUnread.addActionListener(e -> processToggleReadUnreadSelected());
 
-        // Pagination on top right: 1-16 of 16 < >
+        JButton btnArchive = new JButton("Archive Selected");
+        styleToolbarButton(btnArchive);
+        btnArchive.addActionListener(e -> processArchiveSelected());
+
+        leftActions.add(chkSelectAll);
+        leftActions.add(btnDelete);
+        leftActions.add(btnMarkReadUnread);
+        leftActions.add(btnArchive);
+
         JPanel rightPagination = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         rightPagination.setOpaque(false);
 
-        paginationLabel = new JLabel("1-16 of 16");
-        paginationLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        paginationLabel.setForeground(new Color(100, 116, 139));
+        lblPageInfo = new JLabel("Page 1 of 1");
+        lblPageInfo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblPageInfo.setForeground(MUTED_TEXT);
 
-        JLabel prevArrow = new JLabel("<");
-        prevArrow.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        prevArrow.setForeground(new Color(148, 163, 184));
+        btnPrevPage = new JButton("<");
+        btnNextPage = new JButton(">");
+        for (JButton arrow : new JButton[]{btnPrevPage, btnNextPage}) {
+            arrow.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            arrow.setForeground(MUTED_TEXT);
+            arrow.setContentAreaFilled(false);
+            arrow.setFocusPainted(false);
+            arrow.setBorder(BorderFactory.createEmptyBorder(2, 8, 2, 8));
+            arrow.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        }
+        btnPrevPage.addActionListener(e -> {
+            if (currentPage > 1) {
+                currentPage--;
+                renderCurrentPage();
+            }
+        });
+        btnNextPage.addActionListener(e -> {
+            int maxPages = (int) Math.ceil((double) currentFilteredEmails.size() / ITEMS_PER_PAGE);
+            if (currentPage < maxPages) {
+                currentPage++;
+                renderCurrentPage();
+            }
+        });
 
-        JLabel nextArrow = new JLabel(">");
-        nextArrow.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        nextArrow.setForeground(new Color(148, 163, 184));
-
-        rightPagination.add(paginationLabel);
-        rightPagination.add(prevArrow);
-        rightPagination.add(nextArrow);
+        rightPagination.add(lblPageInfo);
+        rightPagination.add(btnPrevPage);
+        rightPagination.add(btnNextPage);
 
         topToolbar.add(leftActions, BorderLayout.WEST);
         topToolbar.add(rightPagination, BorderLayout.EAST);
 
-        // Category Tabs Bar using icons: Primary (mail-inbox-app.png), Promotions (tag.png), Social (multiple-users-silhouette.png)
-        JPanel tabsBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 0));
-        tabsBar.setOpaque(false);
-        tabsBar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)));
-
-        primaryTabBtn = createTabButton("Primary", "mail-inbox-app.png", true);
-        promoTabBtn = createTabButton("Promotions", "tag.png", false);
-        socialTabBtn = createTabButton("Social", "multiple-users-silhouette.png", false);
-
-        primaryTabBtn.addActionListener(e -> switchTab("Primary", primaryTabBtn));
-        promoTabBtn.addActionListener(e -> switchTab("Promotions", promoTabBtn));
-        socialTabBtn.addActionListener(e -> switchTab("Social", socialTabBtn));
-
-        tabsBar.add(primaryTabBtn);
-        tabsBar.add(promoTabBtn);
-        tabsBar.add(socialTabBtn);
-
-        // Header Stack (Top Toolbar + Tabs Bar)
         JPanel northStack = new JPanel();
         northStack.setLayout(new BoxLayout(northStack, BoxLayout.Y_AXIS));
         northStack.setOpaque(false);
+        northStack.add(sectionBar);
         northStack.add(topToolbar);
-        northStack.add(tabsBar);
 
         card.add(northStack, BorderLayout.NORTH);
 
-        // Email Table Setup
-        String[] columnNames = {"", "★", "Sender", "Subject & Content Snippet", "Date"};
+        // Email Table
+        String[] columnNames = {"", "\u2605", "Sender", "Subject & Content Snippet", "Time"};
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public Class<?> getColumnClass(int columnIndex) {
@@ -569,7 +442,7 @@ public class NaviMailApp extends JFrame {
 
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 0; // Only checkbox is directly editable
+                return column == 0;
             }
         };
 
@@ -581,62 +454,68 @@ public class NaviMailApp extends JFrame {
         emailTable.setSelectionBackground(new Color(238, 242, 246));
         emailTable.setSelectionForeground(Color.BLACK);
 
-        // Column Width Adjustments
-        emailTable.getColumnModel().getColumn(0).setMaxWidth(30); // Checkbox
-        emailTable.getColumnModel().getColumn(1).setMaxWidth(30); // Star
-        emailTable.getColumnModel().getColumn(2).setPreferredWidth(160); // Sender
-        emailTable.getColumnModel().getColumn(3).setPreferredWidth(550); // Subject
-        emailTable.getColumnModel().getColumn(4).setPreferredWidth(90); // Date
+        emailTable.getColumnModel().getColumn(0).setMaxWidth(30);
+        emailTable.getColumnModel().getColumn(1).setMaxWidth(30);
+        emailTable.getColumnModel().getColumn(2).setPreferredWidth(180);
+        emailTable.getColumnModel().getColumn(3).setPreferredWidth(600);
+        emailTable.getColumnModel().getColumn(4).setPreferredWidth(140);
 
-        // Custom Cell Renderer for Star Icon using star.png!
         ImageIcon starImg = loadIcon("star.png", 16, 16);
         emailTable.getColumnModel().getColumn(1).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 label.setHorizontalAlignment(JLabel.CENTER);
-                if ("★".equals(value)) {
+                if ("\u2605".equals(value)) {
                     if (starImg != null) {
                         label.setIcon(starImg);
                         label.setText("");
                     } else {
                         label.setIcon(null);
-                        label.setText("★");
+                        label.setText("\u2605");
                         label.setForeground(new Color(234, 179, 8));
                     }
                 } else {
                     label.setIcon(null);
-                    label.setText("☆");
+                    label.setText("\u2606");
                     label.setForeground(new Color(148, 163, 184));
                 }
                 return label;
             }
         });
 
-        // Double click listener to open Email Detail Dialog
+        // Bold Sender/Subject cells for unread emails
+        DefaultTableCellRenderer unreadRenderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                boolean unread = row >= 0 && row < pageEmails.size() && !pageEmails.get(row).isRead();
+                label.setFont(new Font("Segoe UI", unread ? Font.BOLD : Font.PLAIN, 13));
+                return label;
+            }
+        };
+        emailTable.getColumnModel().getColumn(2).setCellRenderer(unreadRenderer);
+        emailTable.getColumnModel().getColumn(3).setCellRenderer(unreadRenderer);
+
         emailTable.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 int row = emailTable.getSelectedRow();
                 int col = emailTable.getSelectedColumn();
-                if (row != -1) {
-                    if (col == 1) { // Toggle Star
-                        String currentStar = (String) tableModel.getValueAt(row, 1);
-                        boolean isStar = "★".equals(currentStar);
-                        tableModel.setValueAt(isStar ? "☆" : "★", row, 1);
+                if (row == -1 || row >= pageEmails.size()) return;
+                Email email = pageEmails.get(row);
 
-                        // Update email object in list
-                        Email email = getEmailAtRow(row);
-                        if (email != null) {
-                            email.setStarred(!isStar);
-                        }
-                    } else if (e.getClickCount() == 2) {
-                        Email email = getEmailAtRow(row);
-                        if (email != null) {
-                            EmailDetailDialog detailDialog = new EmailDetailDialog(NaviMailApp.this, email);
-                            detailDialog.setVisible(true);
-                            refreshEmailTable();
-                        }
+                if (col == 1) { // Toggle Important/Star
+                    email.setImportant(!email.isImportant());
+                    FileHandler.getInstance().updateEmail(email);
+                    tableModel.setValueAt(email.isImportant() ? "\u2605" : "\u2606", row, 1);
+                } else if (e.getClickCount() == 2) {
+                    if (email.isDraft()) {
+                        ComposeDialog composeDialog = new ComposeDialog(NaviMailApp.this, email, NaviMailApp.this::refreshEmailList);
+                        composeDialog.setVisible(true);
+                    } else {
+                        EmailDetailDialog detailDialog = new EmailDetailDialog(NaviMailApp.this, email, NaviMailApp.this::refreshEmailList);
+                        detailDialog.setVisible(true);
                     }
                 }
             }
@@ -651,191 +530,183 @@ public class NaviMailApp extends JFrame {
         return card;
     }
 
-    private JButton createTabButton(String text, String iconName, boolean active) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("Segoe UI", active ? Font.BOLD : Font.PLAIN, 13));
-        btn.setForeground(active ? new Color(11, 87, 208) : new Color(100, 116, 139));
-        btn.setContentAreaFilled(false);
+    private void styleToolbarButton(JButton btn) {
+        btn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btn.setForeground(new Color(30, 41, 59));
         btn.setFocusPainted(false);
-        btn.setBorder(BorderFactory.createMatteBorder(0, 0, active ? 3 : 0, 0, new Color(11, 87, 208)));
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    }
 
-        if (iconName != null) {
-            ImageIcon icon = loadIcon(iconName, 16, 16);
-            if (icon != null) {
-                btn.setIcon(icon);
+
+    public void refreshEmailList() {
+        List<Email> allEmails = FileHandler.getInstance().getEmails();
+        String query = txtSearch.getText().trim().toLowerCase();
+
+        currentFilteredEmails = allEmails.stream().filter(e -> {
+            if (!query.isEmpty()) {
+                boolean match = (e.getSubject() != null && e.getSubject().toLowerCase().contains(query)) ||
+                        (e.getSender() != null && e.getSender().toLowerCase().contains(query)) ||
+                        (e.getBody() != null && e.getBody().toLowerCase().contains(query));
+                if (!match) return false;
             }
-        }
 
-        return btn;
-    }
-
-    private JPanel createRightSideToolbar() {
-        JPanel toolbar = new JPanel();
-        toolbar.setLayout(new BoxLayout(toolbar, BoxLayout.Y_AXIS));
-        toolbar.setOpaque(false);
-        toolbar.setPreferredSize(new Dimension(50, 0));
-        toolbar.setBorder(new EmptyBorder(20, 10, 20, 10));
-
-        JLabel calIcon = createSideIcon("📅");
-        JLabel keepIcon = createSideIcon("💡");
-        JLabel taskIcon = createSideIcon("✓");
-        JLabel addIcon = createSideIcon("＋");
-
-        toolbar.add(calIcon);
-        toolbar.add(Box.createVerticalStrut(20));
-        toolbar.add(keepIcon);
-        toolbar.add(Box.createVerticalStrut(20));
-        toolbar.add(taskIcon);
-        toolbar.add(Box.createVerticalStrut(20));
-        toolbar.add(addIcon);
-
-        return toolbar;
-    }
-
-    private JLabel createSideIcon(String symbol) {
-        JLabel lbl = new JLabel(symbol, SwingConstants.CENTER);
-        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        lbl.setForeground(Color.WHITE);
-        lbl.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        lbl.setAlignmentX(Component.CENTER_ALIGNMENT);
-        return lbl;
-    }
-
-    private void switchTab(String categoryName, JButton clickedBtn) {
-        activeTabName = categoryName;
-
-        primaryTabBtn.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        primaryTabBtn.setForeground(new Color(100, 116, 139));
-        primaryTabBtn.setBorder(null);
-
-        promoTabBtn.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        promoTabBtn.setForeground(new Color(100, 116, 139));
-        promoTabBtn.setBorder(null);
-
-        socialTabBtn.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        socialTabBtn.setForeground(new Color(100, 116, 139));
-        socialTabBtn.setBorder(null);
-
-        clickedBtn.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        clickedBtn.setForeground(new Color(11, 87, 208));
-        clickedBtn.setBorder(BorderFactory.createMatteBorder(0, 0, 3, 0, new Color(11, 87, 208)));
-
-        switchCategory(categoryName);
-    }
-
-    private void switchCategory(String categoryName) {
-        EmailCategory cat = findCategory(categoryName);
-        if (cat != null) {
-            currentCategory = cat;
-            refreshEmailTable();
-        }
-    }
-
-    private EmailCategory findCategory(String name) {
-        for (int i = 0; i < categories.getSize(); i++) {
-            EmailCategory cat = categories.getElement(i);
-            if (cat.getCategoryName().equalsIgnoreCase(name)) {
-                return cat;
+            switch (activeTab) {
+                case "DRAFTS":
+                    return e.isDraft() && !e.isTrashed();
+                case "IMPORTANT":
+                    return e.isImportant() && !e.isTrashed() && !e.isDraft();
+                case "ARCHIVE":
+                    return e.isArchived() && !e.isTrashed() && !e.isDraft();
+                case "TRASH":
+                    return e.isTrashed();
+                case "UNREAD":
+                    return !e.isRead() && !e.isTrashed() && !e.isDraft();
+                case "INBOX":
+                default:
+                    return !e.isArchived() && !e.isTrashed() && !e.isDraft();
             }
+        }).collect(Collectors.toList());
+
+        if (sectionTitleLabel != null) {
+            sectionTitleLabel.setText(sectionDisplayName(activeTab));
         }
-        return null;
+
+        renderCurrentPage();
+        updateInboxBadge();
     }
 
-    private void refreshEmailTable() {
+    private String sectionDisplayName(String tabKey) {
+        switch (tabKey) {
+            case "DRAFTS": return "Drafts";
+            case "IMPORTANT": return "Important";
+            case "ARCHIVE": return "Archive";
+            case "TRASH": return "Trash";
+            case "UNREAD": return "Unread / Read";
+            case "INBOX":
+            default: return "Inbox";
+        }
+    }
+
+    private void renderCurrentPage() {
         tableModel.setRowCount(0);
-        if (currentCategory == null) return;
+        pageEmails.clear();
 
-        MyList<Email> emails = currentCategory.getEmailList();
-        for (int i = 0; i < emails.getSize(); i++) {
-            Email email = emails.getElement(i);
-            String star = email.isStarred() ? "★" : "☆";
+        int totalItems = currentFilteredEmails.size();
+        int maxPages = (int) Math.ceil((double) totalItems / ITEMS_PER_PAGE);
+        if (maxPages == 0) maxPages = 1;
+
+        if (currentPage > maxPages) currentPage = maxPages;
+        if (currentPage < 1) currentPage = 1;
+
+        lblPageInfo.setText("Page " + currentPage + " of " + maxPages + " (" + totalItems + " items)");
+        btnPrevPage.setEnabled(currentPage > 1);
+        btnNextPage.setEnabled(currentPage < maxPages);
+        if (chkSelectAll != null) chkSelectAll.setSelected(false);
+
+        int startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
+
+        for (int i = startIndex; i < endIndex; i++) {
+            Email email = currentFilteredEmails.get(i);
+            pageEmails.add(email);
+            String star = email.isImportant() ? "\u2605" : "\u2606";
+            String content = email.getSubject() + " - " + email.getBody();
             tableModel.addRow(new Object[]{
                     false,
                     star,
                     email.getSender(),
-                    email.getSubject() + " - " + email.getSnippet(),
-                    email.getDate()
+                    content,
+                    email.getTimestamp() != null ? email.getTimestamp() : ""
             });
         }
 
-        int count = emails.getSize();
-        paginationLabel.setText(count == 0 ? "0 of 0" : "1-" + count + " of " + count);
-        updateInboxBadge();
+        emailTable.revalidate();
+        emailTable.repaint();
     }
 
-    private void filterEmailList(String query) {
-        if (query.isEmpty() || query.equalsIgnoreCase("Search mail")) {
-            refreshEmailTable();
+    private List<String> getSelectedEmailIds() {
+        List<String> selectedIds = new ArrayList<>();
+        for (int i = 0; i < tableModel.getRowCount(); i++) {
+            Boolean checked = (Boolean) tableModel.getValueAt(i, 0);
+            if (checked != null && checked && i < pageEmails.size()) {
+                selectedIds.add(pageEmails.get(i).getId());
+            }
+        }
+        return selectedIds;
+    }
+
+    private void processDeleteSelected() {
+        List<String> ids = getSelectedEmailIds();
+        if (ids.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No emails selected.", "Selection Required", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        tableModel.setRowCount(0);
-        MyList<Email> emails = currentCategory.getEmailList();
-        int matchCount = 0;
-
-        for (int i = 0; i < emails.getSize(); i++) {
-            Email email = emails.getElement(i);
-            String q = query.toLowerCase();
-            if (email.getSender().toLowerCase().contains(q) ||
-                email.getSubject().toLowerCase().contains(q) ||
-                email.getSnippet().toLowerCase().contains(q)) {
-
-                String star = email.isStarred() ? "★" : "☆";
-                tableModel.addRow(new Object[]{
-                        false,
-                        star,
-                        email.getSender(),
-                        email.getSubject() + " - " + email.getSnippet(),
-                        email.getDate()
-                });
-                matchCount++;
-            }
-        }
-        paginationLabel.setText(matchCount == 0 ? "0 of 0" : "1-" + matchCount + " of " + matchCount);
-    }
-
-    private Email getEmailAtRow(int row) {
-        if (currentCategory == null || row < 0 || row >= currentCategory.getEmailList().getSize()) {
-            return null;
-        }
-        return currentCategory.getEmailList().getElement(row);
-    }
-
-    private void deleteSelectedEmails() {
-        if (currentCategory == null) return;
-
-        ArrayList<Email> toDelete = new ArrayList<>();
-        for (int i = 0; i < tableModel.getRowCount(); i++) {
-            Boolean checked = (Boolean) tableModel.getValueAt(i, 0);
-            if (checked != null && checked) {
-                Email email = getEmailAtRow(i);
-                if (email != null) {
-                    toDelete.add(email);
+        FileHandler fh = FileHandler.getInstance();
+        for (String id : ids) {
+            Email e = fh.getEmails().stream().filter(mail -> mail.getId().equals(id)).findFirst().orElse(null);
+            if (e != null) {
+                if (activeTab.equals("TRASH")) {
+                    fh.deleteEmail(id);
+                } else {
+                    e.setTrashed(true);
+                    fh.updateEmail(e);
                 }
             }
         }
+        refreshEmailList();
+    }
 
-        if (toDelete.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Please select at least one email to delete.", "No Selection", JOptionPane.INFORMATION_MESSAGE);
+    private void processToggleReadUnreadSelected() {
+        List<String> ids = getSelectedEmailIds();
+        if (ids.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No emails selected.", "Selection Required", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete " + toDelete.size() + " selected email(s)?", "Confirm Delete", JOptionPane.YES_NO_OPTION);
-        if (confirm == JOptionPane.YES_OPTION) {
-            for (Email email : toDelete) {
-                currentCategory.removeEmail(email);
+        FileHandler fh = FileHandler.getInstance();
+        for (String id : ids) {
+            Email e = fh.getEmails().stream().filter(mail -> mail.getId().equals(id)).findFirst().orElse(null);
+            if (e != null) {
+                e.setRead(!e.isRead());
+                fh.updateEmail(e);
             }
-            refreshEmailTable();
-            JOptionPane.showMessageDialog(this, "Successfully deleted selected emails.", "Deleted", JOptionPane.INFORMATION_MESSAGE);
+        }
+        refreshEmailList();
+    }
+
+    private void processArchiveSelected() {
+        List<String> ids = getSelectedEmailIds();
+        if (ids.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No emails selected.", "Selection Required", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        FileHandler fh = FileHandler.getInstance();
+        for (String id : ids) {
+            Email e = fh.getEmails().stream().filter(mail -> mail.getId().equals(id)).findFirst().orElse(null);
+            if (e != null) {
+                e.setArchived(!e.isArchived());
+                fh.updateEmail(e);
+            }
+        }
+        refreshEmailList();
+    }
+
+    private void processSignOut() {
+        int choice = JOptionPane.showConfirmDialog(this, "Are you sure you want to sign out?", "Sign Out", JOptionPane.YES_NO_OPTION);
+        if (choice == JOptionPane.YES_OPTION) {
+            CurrentUser.getInstance().logout();
+            lblUserProfile.setText("Signed Out");
+            JOptionPane.showMessageDialog(this, "You have been signed out.", "Signed Out", JOptionPane.INFORMATION_MESSAGE);
         }
     }
 
     private void updateInboxBadge() {
-        EmailCategory primary = findCategory("Primary");
-        if (primary != null && inboxBadgeLabel != null) {
-            inboxBadgeLabel.setText(String.valueOf(primary.getEmailList().getSize()));
-        }
+        if (inboxBadgeLabel == null) return;
+        List<Email> allEmails = FileHandler.getInstance().getEmails();
+        long count = allEmails.stream().filter(e -> !e.isArchived() && !e.isTrashed() && !e.isDraft()).count();
+        inboxBadgeLabel.setText(String.valueOf(count));
     }
 
     public static void main(String[] args) {
@@ -843,8 +714,7 @@ public class NaviMailApp extends JFrame {
             try {
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             } catch (Exception ignored) {}
-            CurrentUser testUser = new CurrentUser();
-            NaviMailApp app = new NaviMailApp(testUser);
+            NaviMailApp app = new NaviMailApp();
             app.setVisible(true);
         });
     }

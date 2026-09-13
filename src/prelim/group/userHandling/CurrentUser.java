@@ -1,29 +1,33 @@
 package prelim.group.userHandling;
 
 public class CurrentUser {
-    private static User currentUser;
+    private static CurrentUser instance;
+    private User user;
 
-    // Private constructor prevents direct instantiation
-    public CurrentUser() {}
-
-    public static void set(User user) {
-        currentUser = user;
+    private CurrentUser() {
+        this.user = new User("user@mail.com", "password", "Default User");
     }
 
-    public static User get() {
-        return currentUser;
+    public static synchronized CurrentUser getInstance() {
+        if (instance == null) {
+            instance = new CurrentUser();
+        }
+        return instance;
     }
 
-    public static boolean isLoggedIn() {
-        return currentUser != null;
+    public User getUser() {
+        return user;
     }
 
-    public static void logout() {
-        currentUser = null;
+    public void setUser(User user) {
+        this.user = user;
     }
 
-    @Override
-    public String toString() {
-        return currentUser != null ? currentUser.getUserID() : "";
+    public void logout() {
+        this.user = null;
+    }
+
+    public boolean isLoggedIn() {
+        return this.user != null;
     }
 }
