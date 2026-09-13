@@ -602,14 +602,9 @@ public class NaviMailApp extends JFrame {
                 int col = emailTable.getSelectedColumn();
                 if (row != -1) {
                     if (col == 1) { // Toggle Star
-                        String currentStar = (String) tableModel.getValueAt(row, 1);
-                        boolean isStar = "★".equals(currentStar);
-                        tableModel.setValueAt(isStar ? "☆" : "★", row, 1);
-
-                        // Update email object in list
                         Email email = getEmailAtRow(row);
                         if (email != null) {
-                            email.setStarred(!isStar);
+                            toggleEmailStar(email);
                         }
                     } else if (e.getClickCount() == 2) {
                         Email email = getEmailAtRow(row);
@@ -630,6 +625,29 @@ public class NaviMailApp extends JFrame {
         card.add(tableScroll, BorderLayout.CENTER);
 
         return card;
+    }
+
+    private void toggleEmailStar(Email email) {
+        if (email == null) return;
+
+        boolean newStarredState = !email.isStarred();
+        email.setStarred(newStarredState);
+
+        EmailCategory starredCat = findCategory("Starred");
+        if (starredCat != null) {
+            if (newStarredState) {
+                // Add to Starred category if not present
+                if (starredCat.getEmailList().search(email) == -1) {
+                    starredCat.addEmailToTop(email);
+                }
+            } else {
+                // Remove from Starred category
+                starredCat.removeEmail(email);
+            }
+        }
+
+        // Refresh current table view
+        refreshEmailTable();
     }
 
     private JButton createTabButton(String text, String iconName, boolean active) {
