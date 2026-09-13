@@ -1,9 +1,11 @@
 package prelim.group.gui;
 
+
 import prelim.group.filehandler.FileHandler;
 import prelim.group.model.Email;
 import prelim.group.userHandling.CurrentUser;
 import prelim.group.userHandling.User;
+
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -17,8 +19,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+
 public class NaviMailApp extends JFrame {
     private static final int ITEMS_PER_PAGE = 8;
+
 
     // Navy Gmail-style palette (matches System 1 look & feel)
     private static final Color NAVY_BG = new Color(6, 50, 79);
@@ -29,8 +33,10 @@ public class NaviMailApp extends JFrame {
     private static final Color MUTED_TEXT = new Color(100, 116, 139);
     private static final Color BORDER_LIGHT = new Color(226, 232, 240);
 
+
     private String activeTab = "INBOX";
     private int currentPage = 1;
+
 
     // UI Components
     private JTextField txtSearch;
@@ -45,8 +51,10 @@ public class NaviMailApp extends JFrame {
     private JLabel sectionTitleLabel;
     private final List<JPanel> sidebarPanels = new ArrayList<>();
 
+
     private List<Email> currentFilteredEmails = new ArrayList<>();
     private List<Email> pageEmails = new ArrayList<>();
+
 
     public NaviMailApp() {
         setTitle("Mail Client");
@@ -54,21 +62,27 @@ public class NaviMailApp extends JFrame {
         setSize(1280, 800);
         setLocationRelativeTo(null);
 
+
         JPanel rootPanel = new JPanel(new BorderLayout());
         rootPanel.setBackground(NAVY_BG);
 
+
         rootPanel.add(createTopHeader(), BorderLayout.NORTH);
+
 
         JPanel bodyPanel = new JPanel(new BorderLayout());
         bodyPanel.setOpaque(false);
         bodyPanel.add(createLeftNavigation(), BorderLayout.WEST);
         bodyPanel.add(createMainContentCard(), BorderLayout.CENTER);
 
+
         rootPanel.add(bodyPanel, BorderLayout.CENTER);
         setContentPane(rootPanel);
 
+
         refreshEmailList();
     }
+
 
     private ImageIcon loadIcon(String filename, int width, int height) {
         try {
@@ -85,6 +99,7 @@ public class NaviMailApp extends JFrame {
                 return new ImageIcon(scaled);
             }
 
+
             java.net.URL url = getClass().getResource("/resources/icons/" + filename);
             if (url != null) {
                 ImageIcon original = new ImageIcon(url);
@@ -97,6 +112,7 @@ public class NaviMailApp extends JFrame {
         return null;
     }
 
+
     // ---------------------------------------------------------------
     // Top Header: hamburger + mascot + brand, search bar, profile/sign out
     // ---------------------------------------------------------------
@@ -105,14 +121,17 @@ public class NaviMailApp extends JFrame {
         header.setOpaque(false);
         header.setBorder(new EmptyBorder(10, 20, 10, 20));
 
+
         // Left Branding
         JPanel leftBrand = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         leftBrand.setOpaque(false);
+
 
         JLabel menuBtn = new JLabel("\u2261");
         menuBtn.setFont(new Font("Segoe UI", Font.BOLD, 22));
         menuBtn.setForeground(Color.WHITE);
         menuBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
 
         JLabel mascotLabel = new JLabel();
         ImageIcon naviImg = loadIcon("navi.png", 40, 40);
@@ -123,19 +142,23 @@ public class NaviMailApp extends JFrame {
             mascotLabel.setFont(new Font("Segoe UI", Font.PLAIN, 22));
         }
 
+
         JLabel lblLogo = new JLabel("NaviMail");
         lblLogo.setFont(new Font("Segoe UI", Font.BOLD, 20));
         lblLogo.setForeground(Color.WHITE);
+
 
         leftBrand.add(menuBtn);
         leftBrand.add(mascotLabel);
         leftBrand.add(lblLogo);
         header.add(leftBrand, BorderLayout.WEST);
 
+
         // Center Search Bar
         JPanel searchContainer = new JPanel(new BorderLayout());
         searchContainer.setOpaque(false);
         searchContainer.setBorder(new EmptyBorder(0, 40, 0, 40));
+
 
         JPanel searchBar = new JPanel(new BorderLayout(8, 0));
         searchBar.setBackground(SEARCH_BG);
@@ -143,6 +166,7 @@ public class NaviMailApp extends JFrame {
                 BorderFactory.createLineBorder(SEARCH_BG, 1, true),
                 new EmptyBorder(6, 16, 6, 10)
         ));
+
 
         JLabel searchIcon = new JLabel();
         ImageIcon searchImg = loadIcon("search.png", 18, 18);
@@ -152,6 +176,7 @@ public class NaviMailApp extends JFrame {
             searchIcon.setText("\uD83D\uDD0D");
             searchIcon.setForeground(MUTED_TEXT);
         }
+
 
         txtSearch = new JTextField();
         txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 14));
@@ -164,6 +189,7 @@ public class NaviMailApp extends JFrame {
             }
         });
 
+
         JButton btnSearch = new JButton("Search");
         btnSearch.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         btnSearch.setContentAreaFilled(false);
@@ -173,21 +199,25 @@ public class NaviMailApp extends JFrame {
         btnSearch.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnSearch.addActionListener(e -> refreshEmailList());
 
+
         searchBar.add(searchIcon, BorderLayout.WEST);
         searchBar.add(txtSearch, BorderLayout.CENTER);
         searchBar.add(btnSearch, BorderLayout.EAST);
         searchContainer.add(searchBar, BorderLayout.CENTER);
         header.add(searchContainer, BorderLayout.CENTER);
 
+
         // Right: user profile, avatar, sign out
         JPanel rightIcons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         rightIcons.setOpaque(false);
+
 
         User currentUser = CurrentUser.getInstance().getUser();
         String userDisplay = currentUser != null ? currentUser.getFullName() + " (" + currentUser.getEmail() + ")" : "Guest";
         lblUserProfile = new JLabel(userDisplay);
         lblUserProfile.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblUserProfile.setForeground(Color.WHITE);
+
 
         JLabel avatarLabel = new JLabel();
         ImageIcon accountImg = loadIcon("account.png", 28, 28);
@@ -203,6 +233,7 @@ public class NaviMailApp extends JFrame {
             avatarLabel.setBorder(BorderFactory.createLineBorder(Color.WHITE, 1, true));
         }
 
+
         JButton btnSignOut = new JButton("Sign Out");
         btnSignOut.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         btnSignOut.setForeground(Color.WHITE);
@@ -212,13 +243,16 @@ public class NaviMailApp extends JFrame {
         btnSignOut.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnSignOut.addActionListener(e -> processSignOut());
 
+
         rightIcons.add(lblUserProfile);
         rightIcons.add(avatarLabel);
         rightIcons.add(btnSignOut);
 
+
         header.add(rightIcons, BorderLayout.EAST);
         return header;
     }
+
 
     // ---------------------------------------------------------------
     // Left Sidebar: Compose pill + navigation tabs
@@ -229,6 +263,7 @@ public class NaviMailApp extends JFrame {
         sidebar.setOpaque(false);
         sidebar.setPreferredSize(new Dimension(220, 0));
         sidebar.setBorder(new EmptyBorder(10, 15, 10, 15));
+
 
         JButton btnCompose = new JButton(" + Compose");
         ImageIcon composeImg = loadIcon("compose.png", 20, 20);
@@ -248,12 +283,15 @@ public class NaviMailApp extends JFrame {
             dialog.setVisible(true);
         });
 
+
         sidebar.add(btnCompose);
         sidebar.add(Box.createVerticalStrut(20));
+
 
         inboxBadgeLabel = new JLabel("0");
         inboxBadgeLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
         inboxBadgeLabel.setForeground(Color.WHITE);
+
 
         sidebar.add(createNavItem("Inbox", "mail-inbox-app.png", "INBOX", true, inboxBadgeLabel));
         sidebar.add(createNavItem("Drafts", "draft.png", "DRAFTS", false, null));
@@ -262,8 +300,10 @@ public class NaviMailApp extends JFrame {
         sidebar.add(createNavItem("Trash", "trashbin.png", "TRASH", false, null));
         sidebar.add(createNavItem("Unread / Read", "snooze.png", "UNREAD", false, null));
 
+
         return sidebar;
     }
+
 
     private JPanel createNavItem(String text, String iconName, String tabKey, boolean active, JLabel badge) {
         JPanel navItem = new JPanel(new BorderLayout(10, 0));
@@ -275,12 +315,15 @@ public class NaviMailApp extends JFrame {
         navItem.setAlignmentX(Component.LEFT_ALIGNMENT);
         navItem.putClientProperty("tabKey", tabKey);
 
+
         sidebarPanels.add(navItem);
         navItem.setBackground(active ? NAVY_ACTIVE : NAVY_BG);
+
 
         JLabel label = new JLabel(text);
         label.setFont(new Font("Segoe UI", active ? Font.BOLD : Font.PLAIN, 13));
         label.setForeground(Color.WHITE);
+
 
         if (iconName != null) {
             ImageIcon icon = loadIcon(iconName, 18, 18);
@@ -289,10 +332,12 @@ public class NaviMailApp extends JFrame {
             }
         }
 
+
         navItem.add(label, BorderLayout.WEST);
         if (badge != null) {
             navItem.add(badge, BorderLayout.EAST);
         }
+
 
         navItem.addMouseListener(new MouseAdapter() {
             @Override
@@ -304,8 +349,10 @@ public class NaviMailApp extends JFrame {
             }
         });
 
+
         return navItem;
     }
+
 
     private void setActiveSidebarItem(JPanel selectedPanel) {
         for (JPanel panel : sidebarPanels) {
@@ -321,6 +368,7 @@ public class NaviMailApp extends JFrame {
         }
     }
 
+
     // ---------------------------------------------------------------
     // Main White Card: section header, action toolbar, table, pagination
     // ---------------------------------------------------------------
@@ -332,10 +380,12 @@ public class NaviMailApp extends JFrame {
                 new EmptyBorder(10, 15, 10, 15)
         ));
 
+
         // Section title (reflects active nav tab), styled like an active tab underline
         JPanel sectionBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         sectionBar.setOpaque(false);
         sectionBar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_LIGHT));
+
 
         sectionTitleLabel = new JLabel("Inbox");
         sectionTitleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -346,13 +396,16 @@ public class NaviMailApp extends JFrame {
         ));
         sectionBar.add(sectionTitleLabel);
 
+
         // Action Toolbar
         JPanel topToolbar = new JPanel(new BorderLayout());
         topToolbar.setOpaque(false);
         topToolbar.setBorder(new EmptyBorder(8, 5, 8, 5));
 
+
         JPanel leftActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         leftActions.setOpaque(false);
+
 
         chkSelectAll = new JCheckBox("Select All");
         chkSelectAll.setOpaque(false);
@@ -364,6 +417,7 @@ public class NaviMailApp extends JFrame {
             }
         });
 
+
         JButton btnDelete = new JButton(" Delete Selected");
         ImageIcon trashImg = loadIcon("trashbin.png", 16, 16);
         if (trashImg != null) {
@@ -372,25 +426,31 @@ public class NaviMailApp extends JFrame {
         styleToolbarButton(btnDelete);
         btnDelete.addActionListener(e -> processDeleteSelected());
 
+
         JButton btnMarkReadUnread = new JButton("Mark as Read / Unread");
         styleToolbarButton(btnMarkReadUnread);
         btnMarkReadUnread.addActionListener(e -> processToggleReadUnreadSelected());
 
+
         JButton btnArchive = new JButton("Archive Selected");
         styleToolbarButton(btnArchive);
         btnArchive.addActionListener(e -> processArchiveSelected());
+
 
         leftActions.add(chkSelectAll);
         leftActions.add(btnDelete);
         leftActions.add(btnMarkReadUnread);
         leftActions.add(btnArchive);
 
+
         JPanel rightPagination = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         rightPagination.setOpaque(false);
+
 
         lblPageInfo = new JLabel("Page 1 of 1");
         lblPageInfo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblPageInfo.setForeground(MUTED_TEXT);
+
 
         btnPrevPage = new JButton("<");
         btnNextPage = new JButton(">");
@@ -416,12 +476,15 @@ public class NaviMailApp extends JFrame {
             }
         });
 
+
         rightPagination.add(lblPageInfo);
         rightPagination.add(btnPrevPage);
         rightPagination.add(btnNextPage);
 
+
         topToolbar.add(leftActions, BorderLayout.WEST);
         topToolbar.add(rightPagination, BorderLayout.EAST);
+
 
         JPanel northStack = new JPanel();
         northStack.setLayout(new BoxLayout(northStack, BoxLayout.Y_AXIS));
@@ -429,7 +492,9 @@ public class NaviMailApp extends JFrame {
         northStack.add(sectionBar);
         northStack.add(topToolbar);
 
+
         card.add(northStack, BorderLayout.NORTH);
+
 
         // Email Table
         String[] columnNames = {"", "\u2605", "Sender", "Subject & Content Snippet", "Time"};
@@ -440,11 +505,13 @@ public class NaviMailApp extends JFrame {
                 return String.class;
             }
 
+
             @Override
             public boolean isCellEditable(int row, int column) {
                 return column == 0;
             }
         };
+
 
         emailTable = new JTable(tableModel);
         emailTable.setFont(new Font("Segoe UI", Font.PLAIN, 13));
@@ -454,11 +521,13 @@ public class NaviMailApp extends JFrame {
         emailTable.setSelectionBackground(new Color(238, 242, 246));
         emailTable.setSelectionForeground(Color.BLACK);
 
+
         emailTable.getColumnModel().getColumn(0).setMaxWidth(30);
         emailTable.getColumnModel().getColumn(1).setMaxWidth(30);
         emailTable.getColumnModel().getColumn(2).setPreferredWidth(180);
         emailTable.getColumnModel().getColumn(3).setPreferredWidth(600);
         emailTable.getColumnModel().getColumn(4).setPreferredWidth(140);
+
 
         ImageIcon starImg = loadIcon("star.png", 16, 16);
         emailTable.getColumnModel().getColumn(1).setCellRenderer(new DefaultTableCellRenderer() {
@@ -484,6 +553,7 @@ public class NaviMailApp extends JFrame {
             }
         });
 
+
         // Bold Sender/Subject cells for unread emails
         DefaultTableCellRenderer unreadRenderer = new DefaultTableCellRenderer() {
             @Override
@@ -497,6 +567,7 @@ public class NaviMailApp extends JFrame {
         emailTable.getColumnModel().getColumn(2).setCellRenderer(unreadRenderer);
         emailTable.getColumnModel().getColumn(3).setCellRenderer(unreadRenderer);
 
+
         emailTable.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -504,6 +575,7 @@ public class NaviMailApp extends JFrame {
                 int col = emailTable.getSelectedColumn();
                 if (row == -1 || row >= pageEmails.size()) return;
                 Email email = pageEmails.get(row);
+
 
                 if (col == 1) { // Toggle Important/Star
                     email.setImportant(!email.isImportant());
@@ -521,14 +593,18 @@ public class NaviMailApp extends JFrame {
             }
         });
 
+
         JScrollPane tableScroll = new JScrollPane(emailTable);
         tableScroll.setBorder(null);
         tableScroll.getViewport().setBackground(Color.WHITE);
 
+
         card.add(tableScroll, BorderLayout.CENTER);
+
 
         return card;
     }
+
 
     private void styleToolbarButton(JButton btn) {
         btn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -538,9 +614,12 @@ public class NaviMailApp extends JFrame {
     }
 
 
+
+
     public void refreshEmailList() {
         List<Email> allEmails = FileHandler.getInstance().getEmails();
         String query = txtSearch.getText().trim().toLowerCase();
+
 
         currentFilteredEmails = allEmails.stream().filter(e -> {
             if (!query.isEmpty()) {
@@ -549,6 +628,7 @@ public class NaviMailApp extends JFrame {
                         (e.getBody() != null && e.getBody().toLowerCase().contains(query));
                 if (!match) return false;
             }
+
 
             switch (activeTab) {
                 case "DRAFTS":
@@ -567,13 +647,16 @@ public class NaviMailApp extends JFrame {
             }
         }).collect(Collectors.toList());
 
+
         if (sectionTitleLabel != null) {
             sectionTitleLabel.setText(sectionDisplayName(activeTab));
         }
 
+
         renderCurrentPage();
         updateInboxBadge();
     }
+
 
     private String sectionDisplayName(String tabKey) {
         switch (tabKey) {
@@ -587,24 +670,30 @@ public class NaviMailApp extends JFrame {
         }
     }
 
+
     private void renderCurrentPage() {
         tableModel.setRowCount(0);
         pageEmails.clear();
+
 
         int totalItems = currentFilteredEmails.size();
         int maxPages = (int) Math.ceil((double) totalItems / ITEMS_PER_PAGE);
         if (maxPages == 0) maxPages = 1;
 
+
         if (currentPage > maxPages) currentPage = maxPages;
         if (currentPage < 1) currentPage = 1;
+
 
         lblPageInfo.setText("Page " + currentPage + " of " + maxPages + " (" + totalItems + " items)");
         btnPrevPage.setEnabled(currentPage > 1);
         btnNextPage.setEnabled(currentPage < maxPages);
         if (chkSelectAll != null) chkSelectAll.setSelected(false);
 
+
         int startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
         int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalItems);
+
 
         for (int i = startIndex; i < endIndex; i++) {
             Email email = currentFilteredEmails.get(i);
@@ -620,9 +709,11 @@ public class NaviMailApp extends JFrame {
             });
         }
 
+
         emailTable.revalidate();
         emailTable.repaint();
     }
+
 
     private List<String> getSelectedEmailIds() {
         List<String> selectedIds = new ArrayList<>();
@@ -635,12 +726,14 @@ public class NaviMailApp extends JFrame {
         return selectedIds;
     }
 
+
     private void processDeleteSelected() {
         List<String> ids = getSelectedEmailIds();
         if (ids.isEmpty()) {
             JOptionPane.showMessageDialog(this, "No emails selected.", "Selection Required", JOptionPane.WARNING_MESSAGE);
             return;
         }
+
 
         FileHandler fh = FileHandler.getInstance();
         for (String id : ids) {
@@ -657,12 +750,14 @@ public class NaviMailApp extends JFrame {
         refreshEmailList();
     }
 
+
     private void processToggleReadUnreadSelected() {
         List<String> ids = getSelectedEmailIds();
         if (ids.isEmpty()) {
             JOptionPane.showMessageDialog(this, "No emails selected.", "Selection Required", JOptionPane.WARNING_MESSAGE);
             return;
         }
+
 
         FileHandler fh = FileHandler.getInstance();
         for (String id : ids) {
@@ -675,12 +770,14 @@ public class NaviMailApp extends JFrame {
         refreshEmailList();
     }
 
+
     private void processArchiveSelected() {
         List<String> ids = getSelectedEmailIds();
         if (ids.isEmpty()) {
             JOptionPane.showMessageDialog(this, "No emails selected.", "Selection Required", JOptionPane.WARNING_MESSAGE);
             return;
         }
+
 
         FileHandler fh = FileHandler.getInstance();
         for (String id : ids) {
@@ -693,6 +790,7 @@ public class NaviMailApp extends JFrame {
         refreshEmailList();
     }
 
+
     private void processSignOut() {
         int choice = JOptionPane.showConfirmDialog(this, "Are you sure you want to sign out?", "Sign Out", JOptionPane.YES_NO_OPTION);
         if (choice == JOptionPane.YES_OPTION) {
@@ -702,12 +800,14 @@ public class NaviMailApp extends JFrame {
         }
     }
 
+
     private void updateInboxBadge() {
         if (inboxBadgeLabel == null) return;
         List<Email> allEmails = FileHandler.getInstance().getEmails();
         long count = allEmails.stream().filter(e -> !e.isArchived() && !e.isTrashed() && !e.isDraft()).count();
         inboxBadgeLabel.setText(String.valueOf(count));
     }
+
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
@@ -719,3 +819,4 @@ public class NaviMailApp extends JFrame {
         });
     }
 }
+
