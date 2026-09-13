@@ -4,7 +4,7 @@ public class CurrentUser {
     private static User currentUser;
 
     // Private constructor prevents direct instantiation
-    private CurrentUser() {}
+    public CurrentUser() {}
 
     public static void set(User user) {
         currentUser = user;

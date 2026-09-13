@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/Johncoders_GmailSystem.iml" filepath="$PROJECT_DIR$/Johncoders_GmailSystem.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/Johncoders_GmailSystem.iml" filepath="$PROJECT_DIR$/.idea/Johncoders_GmailSystem.iml" />
     </modules>
   </component>
 </project>

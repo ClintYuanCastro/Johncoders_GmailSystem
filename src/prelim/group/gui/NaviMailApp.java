@@ -2,8 +2,10 @@ package prelim.group.gui;
 
 import prelim.exercises.MyDoublyLinkedList;
 import prelim.exercises.MyList;
+import prelim.group.filehandler.FileHandler;
 import prelim.group.model.Email;
 import prelim.group.model.EmailCategory;
+import prelim.group.userHandling.CurrentUser;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -13,12 +15,15 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 public class NaviMailApp extends JFrame {
     // Outer Data Structure: MyList of EmailCategory
     private MyList<EmailCategory> categories;
     private EmailCategory currentCategory;
+    private FileHandler fileHandler;
 
     // UI Components
     private JTextField searchField;
@@ -30,8 +35,9 @@ public class NaviMailApp extends JFrame {
     private String activeTabName = "Primary";
     private java.util.List<JPanel> sidebarPanels = new ArrayList<>();
 
-    public NaviMailApp() {
+    public NaviMailApp(CurrentUser user) {
         super("Gmail - email");
+        this.fileHandler= new FileHandler(user);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1280, 800);
         setLocationRelativeTo(null);
@@ -133,7 +139,17 @@ public class NaviMailApp extends JFrame {
         clintEmail.addReply(new prelim.group.model.EmailReply("clint.castro@slu.edu.ph", "Jan, 26", "Let me know once this is done."));
 
         primary.addEmail(clintEmail);
-
+        try {
+            List <Email> savedMails = fileHandler.loadMails();
+            for (Email email : savedMails) {
+                EmailCategory targetCat = findCategory(email.getCategory());
+                if (targetCat != null) {
+                    targetCat.addEmailToTop(email);
+                } else {
+                    primary.addEmailToTop(email);
+                }
+            }
+        } catch (IOException e) { e.printStackTrace(); }
         currentCategory = primary;
     }
 
@@ -308,6 +324,9 @@ public class NaviMailApp extends JFrame {
                 } else {
                     currentCategory.addEmailToTop(created);
                 }
+                try {
+                    fileHandler.saveMail(created);
+                }catch (IOException ex){ ex.printStackTrace();}
                 refreshEmailTable();
                 updateInboxBadge();
             }
@@ -602,9 +621,14 @@ public class NaviMailApp extends JFrame {
                 int col = emailTable.getSelectedColumn();
                 if (row != -1) {
                     if (col == 1) { // Toggle Star
+                        String currentStar = (String) tableModel.getValueAt(row, 1);
+                        boolean isStar = "★".equals(currentStar);
+                        tableModel.setValueAt(isStar ? "☆" : "★", row, 1);
+
+                        // Update email object in list
                         Email email = getEmailAtRow(row);
                         if (email != null) {
-                            toggleEmailStar(email);
+                            email.setStarred(!isStar);
                         }
                     } else if (e.getClickCount() == 2) {
                         Email email = getEmailAtRow(row);
@@ -625,29 +649,6 @@ public class NaviMailApp extends JFrame {
         card.add(tableScroll, BorderLayout.CENTER);
 
         return card;
-    }
-
-    private void toggleEmailStar(Email email) {
-        if (email == null) return;
-
-        boolean newStarredState = !email.isStarred();
-        email.setStarred(newStarredState);
-
-        EmailCategory starredCat = findCategory("Starred");
-        if (starredCat != null) {
-            if (newStarredState) {
-                // Add to Starred category if not present
-                if (starredCat.getEmailList().search(email) == -1) {
-                    starredCat.addEmailToTop(email);
-                }
-            } else {
-                // Remove from Starred category
-                starredCat.removeEmail(email);
-            }
-        }
-
-        // Refresh current table view
-        refreshEmailTable();
     }
 
     private JButton createTabButton(String text, String iconName, boolean active) {
@@ -842,7 +843,8 @@ public class NaviMailApp extends JFrame {
             try {
                 UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
             } catch (Exception ignored) {}
-            NaviMailApp app = new NaviMailApp();
+            CurrentUser testUser = new CurrentUser();
+            NaviMailApp app = new NaviMailApp(testUser);
             app.setVisible(true);
         });
     }
