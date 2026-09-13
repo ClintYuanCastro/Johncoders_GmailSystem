@@ -8,12 +8,12 @@ import java.io.IOException;
 import prelim.group.model.Email;
 import prelim.group.userHandling.CurrentUser;
 
-public class FileHandler{
+public class FileHandler {
     ObjectMapper objectMapper;
     private CurrentUser currentUser;
     private final File userFolder = new File("userFolder");
 
-    FileHandler(CurrentUser user){
+    public FileHandler(CurrentUser user) {
         this.objectMapper = new ObjectMapper();
         this.currentUser = user;
         if (!userFolder.exists()){
