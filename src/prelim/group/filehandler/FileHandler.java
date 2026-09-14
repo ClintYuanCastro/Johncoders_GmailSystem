@@ -1,27 +1,26 @@
 package prelim.group.filehandler;
 
-
 import prelim.group.model.Email;
 import prelim.group.userHandling.User;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class FileHandler {
     private static FileHandler instance;
     private static final String DATA_DIR = "mailData";
-    private static final String EMAILS_FILE = DATA_DIR + File.separator + "emails.dat";
-    private static final String USERS_FILE = DATA_DIR + File.separator + "users.dat";
+    private static final String EMAILS_FILE = DATA_DIR + File.separator + "emails.json";
+    private static final String USERS_FILE = DATA_DIR + File.separator + "users.json";
 
-
+    private final ObjectMapper objectMapper;
     private List<User> registeredUsers;
     private List<Email> emails;
 
-
     private FileHandler() {
+        this.objectMapper = new ObjectMapper();
         File dir = new File(DATA_DIR);
         if (!dir.exists()) {
             dir.mkdirs();
@@ -31,14 +30,12 @@ public class FileHandler {
         initDefaultUsersIfEmpty();
     }
 
-
     public static synchronized FileHandler getInstance() {
         if (instance == null) {
             instance = new FileHandler();
         }
         return instance;
     }
-
 
     private void initDefaultUsersIfEmpty() {
         if (registeredUsers.isEmpty()) {
@@ -48,18 +45,16 @@ public class FileHandler {
         }
     }
 
-
     public boolean userExists(String email) {
         if (email == null) return false;
-        String target = email.trim().toLowerCase();
+        String target = email.trim();
         for (User u : registeredUsers) {
-            if (u.getEmail().toLowerCase().equals(target)) {
+            if (u.getEmail().equals(target)) {
                 return true;
             }
         }
         return false;
     }
-
 
     /**
      * Validates login credentials against the registered users list.
@@ -71,85 +66,99 @@ public class FileHandler {
      */
     public User authenticate(String email, String password) {
         if (email == null || password == null) return null;
-        String target = email.trim().toLowerCase();
+        String target = email.trim();
         for (User u : registeredUsers) {
-            if (u.getEmail().toLowerCase().equals(target) && u.getPassword().equals(password)) {
+            if (u.getEmail().equals(target) && u.getPassword().equals(password)) {
                 return u;
             }
         }
         return null;
     }
 
-
-    @SuppressWarnings("unchecked")
     private void loadUsers() {
         File file = new File(USERS_FILE);
-        if (!file.exists()) {
+        if (!file.exists() || file.length() == 0) {
             registeredUsers = new ArrayList<>();
             return;
         }
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
-            registeredUsers = (List<User>) ois.readObject();
-        } catch (Exception e) {
+        try {
+            registeredUsers = objectMapper.readValue(
+                    file,
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, User.class)
+            );
+        } catch (IOException e) {
+            System.err.println("Failed to load users.json, starting with an empty list: " + e.getMessage());
             registeredUsers = new ArrayList<>();
         }
     }
 
-
     public void saveUsers() {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(USERS_FILE))) {
-            oos.writeObject(registeredUsers);
+        try {
+            objectMapper.writerWithDefaultPrettyPrinter().writeValue(new File(USERS_FILE), registeredUsers);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-
     public List<User> getRegisteredUsers() {
         return registeredUsers;
     }
-
 
     public void registerUser(User user) {
         registeredUsers.add(user);
         saveUsers();
     }
 
+    /**
+     * Removes a user account by email. Required for the "delete account"
+     * requirement - this method was missing from the incoming FileHandler.
+     *
+     * @param email the email of the account to remove
+     * @return true if a matching account was found and removed
+     */
+    public boolean removeUser(String email) {
+        if (email == null) return false;
+        String target = email.trim();
+        boolean removed = registeredUsers.removeIf(u -> u.getEmail().equals(target));
+        if (removed) {
+            saveUsers();
+        }
+        return removed;
+    }
 
-    @SuppressWarnings("unchecked")
     public void loadEmails() {
         File file = new File(EMAILS_FILE);
-        if (!file.exists()) {
+        if (!file.exists() || file.length() == 0) {
             emails = new ArrayList<>();
             return;
         }
-        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
-            emails = (List<Email>) ois.readObject();
-        } catch (Exception e) {
+        try {
+            emails = objectMapper.readValue(
+                    file,
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, Email.class)
+            );
+        } catch (IOException e) {
+            System.err.println("Failed to load emails.json, starting with an empty list: " + e.getMessage());
             emails = new ArrayList<>();
         }
     }
 
-
     public void saveEmails() {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(EMAILS_FILE))) {
-            oos.writeObject(emails);
+        try {
+            objectMapper.writerWithDefaultPrettyPrinter().writeValue(new File(EMAILS_FILE), emails);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-
     public List<Email> getEmails() {
         return emails;
     }
-
 
     public void addEmail(Email email) {
         emails.add(0, email);
         saveEmails();
     }
-
 
     public void updateEmail(Email updatedEmail) {
         for (int i = 0; i < emails.size(); i++) {
@@ -161,12 +170,10 @@ public class FileHandler {
         saveEmails();
     }
 
-
     public void deleteEmail(String emailId) {
         emails.removeIf(e -> e.getId().equals(emailId));
         saveEmails();
     }
-
 
     public static void saveEmailToUserFolder(String userEmail, Email email) {
         File userFolder = new File("mailFolder/" + userEmail);
@@ -174,13 +181,11 @@ public class FileHandler {
             userFolder.mkdirs(); // Create the folder if it doesn't exist
         }
 
-
-        File emailFile = new File(userFolder, email.getId() + ".dat");
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(emailFile))) {
-            oos.writeObject(email);
+        File emailFile = new File(userFolder, email.getId() + ".json");
+        try {
+            new ObjectMapper().writerWithDefaultPrettyPrinter().writeValue(emailFile, email);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 }
-
