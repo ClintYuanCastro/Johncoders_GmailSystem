@@ -620,8 +620,13 @@ public class NaviMailApp extends JFrame {
         List<Email> allEmails = FileHandler.getInstance().getEmails();
         String query = txtSearch.getText().trim().toLowerCase();
 
+        User currentUser = CurrentUser.getInstance().getUser();
+        String currentUserEmail = currentUser != null ? currentUser.getEmail() : null;
 
         currentFilteredEmails = allEmails.stream().filter(e -> {
+            if (currentUserEmail == null) return false;
+            boolean isRecipient = currentUserEmail.equalsIgnoreCase(e.getRecipient());
+            boolean isSender = currentUserEmail.equalsIgnoreCase(e.getSender());
             if (!query.isEmpty()) {
                 boolean match = (e.getSubject() != null && e.getSubject().toLowerCase().contains(query)) ||
                         (e.getSender() != null && e.getSender().toLowerCase().contains(query)) ||
@@ -632,18 +637,18 @@ public class NaviMailApp extends JFrame {
 
             switch (activeTab) {
                 case "DRAFTS":
-                    return e.isDraft() && !e.isTrashed();
+                    return isSender && e.isDraft() && !e.isTrashed();
                 case "IMPORTANT":
-                    return e.isImportant() && !e.isTrashed() && !e.isDraft();
+                    return (isRecipient || isSender) && e.isImportant() && !e.isTrashed() && !e.isDraft();
                 case "ARCHIVE":
-                    return e.isArchived() && !e.isTrashed() && !e.isDraft();
+                    return isRecipient && e.isArchived() && !e.isTrashed() && !e.isDraft();
                 case "TRASH":
-                    return e.isTrashed();
+                    return (isRecipient || isSender) && e.isTrashed();
                 case "UNREAD":
-                    return !e.isRead() && !e.isTrashed() && !e.isDraft();
+                    return isRecipient && !e.isRead() && !e.isTrashed() && !e.isDraft();
                 case "INBOX":
                 default:
-                    return !e.isArchived() && !e.isTrashed() && !e.isDraft();
+                    return isRecipient && !e.isArchived() && !e.isTrashed() && !e.isDraft();
             }
         }).collect(Collectors.toList());
 
@@ -803,8 +808,16 @@ public class NaviMailApp extends JFrame {
 
     private void updateInboxBadge() {
         if (inboxBadgeLabel == null) return;
+        User currentUser = CurrentUser.getInstance().getUser();
+        if (currentUser == null) {
+            inboxBadgeLabel.setText("0");
+            return;
+        }
+        String currentUserEmail = currentUser.getEmail();
         List<Email> allEmails = FileHandler.getInstance().getEmails();
-        long count = allEmails.stream().filter(e -> !e.isArchived() && !e.isTrashed() && !e.isDraft()).count();
+        long count = allEmails.stream().filter(e -> currentUserEmail.equalsIgnoreCase(e.getRecipient())
+                        && !e.isArchived() && !e.isTrashed() && !e.isDraft())
+                .count();
         inboxBadgeLabel.setText(String.valueOf(count));
     }
 

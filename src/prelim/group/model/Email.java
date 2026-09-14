@@ -20,6 +20,8 @@ public class Email implements Serializable {
     private boolean isDraft;
     private List<String> attachments;
 
+    public Email(){this.attachments = new ArrayList<>();}
+
     public Email(String id, String sender, String recipient, String subject, String body, String timestamp) {
         this.id = id;
         this.sender = sender;
