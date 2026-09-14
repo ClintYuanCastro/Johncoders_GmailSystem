@@ -285,6 +285,7 @@ public class NaviMailApp extends JFrame {
 
 
         sidebar.add(createNavItem("Inbox", "mail-inbox-app.png", "INBOX", true, inboxBadgeLabel));
+        sidebar.add(createNavItem("Sent", "sent.png", "SENT", false, null));
         sidebar.add(createNavItem("Drafts", "draft.png", "DRAFTS", false, null));
         sidebar.add(createNavItem("Important", "star.png", "IMPORTANT", false, null));
         sidebar.add(createNavItem("Archive", "tag.png", "ARCHIVE", false, null));
@@ -488,7 +489,7 @@ public class NaviMailApp extends JFrame {
 
 
         // Email Table
-        String[] columnNames = {"", "\u2605", "Sender", "Subject & Content Snippet", "Time"};
+        String[] columnNames = {"", "\u2605", contactColumnName(), "Subject & Content Snippet", "Time"};
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public Class<?> getColumnClass(int columnIndex) {
@@ -550,7 +551,7 @@ public class NaviMailApp extends JFrame {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                boolean unread = row >= 0 && row < pageEmails.size() && !pageEmails.get(row).isRead();
+                boolean unread = row >= 0 && row < pageEmails.size() && !pageEmails.get(row).isRead() && !"SENT".equals(activeTab);
                 label.setFont(new Font("Segoe UI", unread ? Font.BOLD : Font.PLAIN, 13));
                 return label;
             }
@@ -621,12 +622,15 @@ public class NaviMailApp extends JFrame {
             if (!query.isEmpty()) {
                 boolean match = (e.getSubject() != null && e.getSubject().toLowerCase().contains(query)) ||
                         (e.getSender() != null && e.getSender().toLowerCase().contains(query)) ||
+                        (e.getRecipient() != null && e.getRecipient().toLowerCase().contains(query)) ||
                         (e.getBody() != null && e.getBody().toLowerCase().contains(query));
                 if (!match) return false;
             }
 
 
             switch (activeTab) {
+                case "SENT":
+                    return isSender && !e.isDraft() && !e.isTrashed();
                 case "DRAFTS":
                     return isSender && e.isDraft() && !e.isTrashed();
                 case "IMPORTANT":
@@ -639,7 +643,7 @@ public class NaviMailApp extends JFrame {
                     return isRecipient && !e.isRead() && !e.isTrashed() && !e.isDraft();
                 case "INBOX":
                 default:
-                    return isRecipient && !e.isArchived() && !e.isTrashed() && !e.isDraft();
+                    return isRecipient && !isSender && !e.isArchived() && !e.isTrashed() && !e.isDraft();
             }
         }).collect(Collectors.toList());
 
@@ -656,6 +660,7 @@ public class NaviMailApp extends JFrame {
 
     private String sectionDisplayName(String tabKey) {
         switch (tabKey) {
+            case "SENT": return "Sent";
             case "DRAFTS": return "Drafts";
             case "IMPORTANT": return "Important";
             case "ARCHIVE": return "Archive";
@@ -670,6 +675,7 @@ public class NaviMailApp extends JFrame {
     private void renderCurrentPage() {
         tableModel.setRowCount(0);
         pageEmails.clear();
+        emailTable.getColumnModel().getColumn(2).setHeaderValue(contactColumnName());
 
 
         int totalItems = currentFilteredEmails.size();
@@ -699,15 +705,26 @@ public class NaviMailApp extends JFrame {
             tableModel.addRow(new Object[]{
                     false,
                     star,
-                    email.getSender(),
+                    contactValue(email),
                     content,
                     email.getTimestamp() != null ? email.getTimestamp() : ""
             });
         }
 
 
+        emailTable.getTableHeader().repaint();
         emailTable.revalidate();
         emailTable.repaint();
+    }
+
+
+    private String contactColumnName() {
+        return "Sender";
+    }
+
+
+    private String contactValue(Email email) {
+        return email.getSender() != null ? email.getSender() : "";
     }
 
 
@@ -823,4 +840,3 @@ public class NaviMailApp extends JFrame {
         });
     }
 }
-

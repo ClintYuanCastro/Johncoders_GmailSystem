@@ -7,6 +7,8 @@ import prelim.group.model.Email;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.File;
+import java.util.List;
 
 
 public class EmailDetailDialog extends JDialog {
@@ -84,6 +86,12 @@ public class EmailDetailDialog extends JDialog {
         mainContent.add(new JScrollPane(txtBody), BorderLayout.CENTER);
 
 
+        JPanel attachmentsPanel = createAttachmentsPanel(email.getAttachments());
+        if (attachmentsPanel != null) {
+            mainContent.add(attachmentsPanel, BorderLayout.SOUTH);
+        }
+
+
         add(mainContent, BorderLayout.CENTER);
 
 
@@ -145,5 +153,47 @@ public class EmailDetailDialog extends JDialog {
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
-}
 
+
+    private JPanel createAttachmentsPanel(List<String> attachments) {
+        if (attachments == null || attachments.isEmpty()) {
+            return null;
+        }
+
+        JPanel attachmentsPanel = new JPanel(new BorderLayout(8, 6));
+        attachmentsPanel.setBackground(WHITE);
+        attachmentsPanel.setBorder(BorderFactory.createEmptyBorder(12, 0, 0, 0));
+
+        JLabel title = new JLabel("Attachments (" + attachments.size() + ")");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        title.setForeground(BLUE_DARK);
+        attachmentsPanel.add(title, BorderLayout.NORTH);
+
+        JPanel fileListPanel = new JPanel();
+        fileListPanel.setLayout(new BoxLayout(fileListPanel, BoxLayout.Y_AXIS));
+        fileListPanel.setBackground(WHITE);
+
+        for (String attachmentPath : attachments) {
+            JLabel attachmentLabel = new JLabel(displayAttachmentName(attachmentPath));
+            attachmentLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            attachmentLabel.setForeground(TEXT_MUTED);
+            attachmentLabel.setBorder(BorderFactory.createEmptyBorder(2, 10, 2, 10));
+            attachmentLabel.setToolTipText(attachmentPath);
+            fileListPanel.add(attachmentLabel);
+        }
+
+        attachmentsPanel.add(fileListPanel, BorderLayout.CENTER);
+        return attachmentsPanel;
+    }
+
+
+    private String displayAttachmentName(String attachmentPath) {
+        if (attachmentPath == null || attachmentPath.trim().isEmpty()) {
+            return "(Unknown attachment)";
+        }
+
+        File file = new File(attachmentPath);
+        String fileName = file.getName();
+        return fileName.isEmpty() ? attachmentPath : fileName;
+    }
+}
