@@ -23,15 +23,13 @@ import java.util.stream.Collectors;
 public class NaviMailApp extends JFrame {
     private static final int ITEMS_PER_PAGE = 8;
 
-
-    // Navy Gmail-style palette (matches System 1 look & feel)
-    private static final Color NAVY_BG = new Color(6, 50, 79);
-    private static final Color NAVY_ACTIVE = new Color(0, 77, 122);
-    private static final Color SEARCH_BG = new Color(234, 241, 251);
+    // ---- Palette -----------------------------------------------------
+    public static final Color BLUE_DARK   = new Color(6, 50, 79);
+    public static final Color BLUE_PRIMARY = new Color(25, 118, 210); // #1976D2
+    public static final Color BLUE_LIGHT  = new Color(227, 242, 253); // #E3F2FD
     private static final Color ACCENT_BLUE = new Color(11, 87, 208);
-    private static final Color COMPOSE_PILL = new Color(194, 231, 255);
-    private static final Color MUTED_TEXT = new Color(100, 116, 139);
-    private static final Color BORDER_LIGHT = new Color(226, 232, 240);
+    public static final Color WHITE       = Color.WHITE;
+    public static final Color TEXT_MUTED  = new Color(120, 130, 140);
 
 
     private String activeTab = "INBOX";
@@ -64,7 +62,7 @@ public class NaviMailApp extends JFrame {
 
 
         JPanel rootPanel = new JPanel(new BorderLayout());
-        rootPanel.setBackground(NAVY_BG);
+        rootPanel.setBackground(BLUE_DARK);
 
 
         rootPanel.add(createTopHeader(), BorderLayout.NORTH);
@@ -114,7 +112,7 @@ public class NaviMailApp extends JFrame {
 
 
     // ---------------------------------------------------------------
-    // Top Header: hamburger + mascot + brand, search bar, profile/sign out
+    // Top Header: mascot + brand, search bar, profile/sign out
     // ---------------------------------------------------------------
     private JPanel createTopHeader() {
         JPanel header = new JPanel(new BorderLayout(15, 0));
@@ -125,12 +123,6 @@ public class NaviMailApp extends JFrame {
         // Left Branding
         JPanel leftBrand = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         leftBrand.setOpaque(false);
-
-
-        JLabel menuBtn = new JLabel("\u2261");
-        menuBtn.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        menuBtn.setForeground(Color.WHITE);
-        menuBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
 
         JLabel mascotLabel = new JLabel();
@@ -148,7 +140,6 @@ public class NaviMailApp extends JFrame {
         lblLogo.setForeground(Color.WHITE);
 
 
-        leftBrand.add(menuBtn);
         leftBrand.add(mascotLabel);
         leftBrand.add(lblLogo);
         header.add(leftBrand, BorderLayout.WEST);
@@ -156,14 +147,15 @@ public class NaviMailApp extends JFrame {
 
         // Center Search Bar
         JPanel searchContainer = new JPanel(new BorderLayout());
+
         searchContainer.setOpaque(false);
-        searchContainer.setBorder(new EmptyBorder(0, 40, 0, 40));
+        searchContainer.setBorder(new EmptyBorder(0, 23, 0, 50));
 
 
         JPanel searchBar = new JPanel(new BorderLayout(8, 0));
-        searchBar.setBackground(SEARCH_BG);
+        searchBar.setBackground(BLUE_LIGHT);
         searchBar.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(SEARCH_BG, 1, true),
+                BorderFactory.createLineBorder(BLUE_LIGHT, 1, true),
                 new EmptyBorder(6, 16, 6, 10)
         ));
 
@@ -174,7 +166,7 @@ public class NaviMailApp extends JFrame {
             searchIcon.setIcon(searchImg);
         } else {
             searchIcon.setText("\uD83D\uDD0D");
-            searchIcon.setForeground(MUTED_TEXT);
+            searchIcon.setForeground(TEXT_MUTED);
         }
 
 
@@ -208,7 +200,7 @@ public class NaviMailApp extends JFrame {
 
 
         // Right: user profile, avatar, sign out
-        JPanel rightIcons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        JPanel rightIcons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 10));
         rightIcons.setOpaque(false);
 
 
@@ -239,7 +231,6 @@ public class NaviMailApp extends JFrame {
         btnSignOut.setForeground(Color.WHITE);
         btnSignOut.setContentAreaFilled(false);
         btnSignOut.setFocusPainted(false);
-        btnSignOut.setBorder(BorderFactory.createLineBorder(Color.WHITE, 1, true));
         btnSignOut.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnSignOut.addActionListener(e -> processSignOut());
 
@@ -271,7 +262,7 @@ public class NaviMailApp extends JFrame {
             btnCompose.setIcon(composeImg);
         }
         btnCompose.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnCompose.setBackground(COMPOSE_PILL);
+        btnCompose.setBackground(BLUE_DARK);
         btnCompose.setForeground(new Color(0, 29, 53));
         btnCompose.setFocusPainted(false);
         btnCompose.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
@@ -317,7 +308,7 @@ public class NaviMailApp extends JFrame {
 
 
         sidebarPanels.add(navItem);
-        navItem.setBackground(active ? NAVY_ACTIVE : NAVY_BG);
+        navItem.setBackground(active ? BLUE_PRIMARY : BLUE_DARK);
 
 
         JLabel label = new JLabel(text);
@@ -357,7 +348,7 @@ public class NaviMailApp extends JFrame {
     private void setActiveSidebarItem(JPanel selectedPanel) {
         for (JPanel panel : sidebarPanels) {
             boolean isSelected = (panel == selectedPanel);
-            panel.setBackground(isSelected ? NAVY_ACTIVE : NAVY_BG);
+            panel.setBackground(isSelected ? BLUE_PRIMARY : BLUE_DARK);
             for (Component comp : panel.getComponents()) {
                 if (comp instanceof JLabel && comp != inboxBadgeLabel) {
                     comp.setFont(new Font("Segoe UI", isSelected ? Font.BOLD : Font.PLAIN, 13));
@@ -376,7 +367,7 @@ public class NaviMailApp extends JFrame {
         JPanel card = new JPanel(new BorderLayout());
         card.setBackground(Color.WHITE);
         card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_LIGHT, 1, true),
+                BorderFactory.createLineBorder(WHITE, 1, true),
                 new EmptyBorder(10, 15, 10, 15)
         ));
 
@@ -384,7 +375,7 @@ public class NaviMailApp extends JFrame {
         // Section title (reflects active nav tab), styled like an active tab underline
         JPanel sectionBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         sectionBar.setOpaque(false);
-        sectionBar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_LIGHT));
+        sectionBar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, WHITE));
 
 
         sectionTitleLabel = new JLabel("Inbox");
@@ -400,10 +391,10 @@ public class NaviMailApp extends JFrame {
         // Action Toolbar
         JPanel topToolbar = new JPanel(new BorderLayout());
         topToolbar.setOpaque(false);
-        topToolbar.setBorder(new EmptyBorder(8, 5, 8, 5));
+        topToolbar.setBorder(new EmptyBorder(8, 0, 8, 5));
 
 
-        JPanel leftActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+        JPanel leftActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         leftActions.setOpaque(false);
 
 
@@ -449,14 +440,14 @@ public class NaviMailApp extends JFrame {
 
         lblPageInfo = new JLabel("Page 1 of 1");
         lblPageInfo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblPageInfo.setForeground(MUTED_TEXT);
+        lblPageInfo.setForeground(TEXT_MUTED);
 
 
         btnPrevPage = new JButton("<");
         btnNextPage = new JButton(">");
         for (JButton arrow : new JButton[]{btnPrevPage, btnNextPage}) {
             arrow.setFont(new Font("Segoe UI", Font.BOLD, 14));
-            arrow.setForeground(MUTED_TEXT);
+            arrow.setForeground(TEXT_MUTED);
             arrow.setContentAreaFilled(false);
             arrow.setFocusPainted(false);
             arrow.setBorder(BorderFactory.createEmptyBorder(2, 8, 2, 8));

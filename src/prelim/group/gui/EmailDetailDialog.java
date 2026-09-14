@@ -10,11 +10,11 @@ import java.awt.*;
 
 
 public class EmailDetailDialog extends JDialog {
-    private static final Color HEADER_BG = new Color(242, 246, 252);
-    private static final Color TITLE_TEXT = new Color(30, 41, 59);
-    private static final Color MUTED_TEXT = new Color(100, 116, 139);
-    private static final Color ACCENT_BLUE = new Color(11, 87, 208);
-    private static final Color BORDER_LIGHT = new Color(226, 232, 240);
+
+    // ---- Palette -----------------------------------------------------
+    public static final Color BLUE_DARK   = new Color(6, 50, 79);
+    public static final Color WHITE       = Color.WHITE;
+    public static final Color TEXT_MUTED  = new Color(120, 130, 140);
 
 
     private Email email;
@@ -40,23 +40,23 @@ public class EmailDetailDialog extends JDialog {
 
         // Header Panel (Gmail style header)
         JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(HEADER_BG);
+        headerPanel.setBackground(WHITE);
         headerPanel.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
 
 
         JLabel lblSubject = new JLabel("Subject: " + email.getSubject());
         lblSubject.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        lblSubject.setForeground(TITLE_TEXT);
+        lblSubject.setForeground(BLUE_DARK);
 
 
         JPanel metaPanel = new JPanel(new GridLayout(2, 1, 2, 2));
         metaPanel.setOpaque(false);
         JLabel lblFromTo = new JLabel("From: " + email.getSender() + "   |   To: " + email.getRecipient());
         lblFromTo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblFromTo.setForeground(MUTED_TEXT);
+        lblFromTo.setForeground(TEXT_MUTED);
         JLabel lblDate = new JLabel("Date: " + email.getTimestamp());
         lblDate.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblDate.setForeground(MUTED_TEXT);
+        lblDate.setForeground(TEXT_MUTED);
         metaPanel.add(lblFromTo);
         metaPanel.add(lblDate);
 
@@ -78,7 +78,7 @@ public class EmailDetailDialog extends JDialog {
         txtBody.setLineWrap(true);
         txtBody.setWrapStyleWord(true);
         txtBody.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_LIGHT),
+                BorderFactory.createLineBorder(WHITE),
                 BorderFactory.createEmptyBorder(10, 10, 10, 10)
         ));
         mainContent.add(new JScrollPane(txtBody), BorderLayout.CENTER);
@@ -89,7 +89,7 @@ public class EmailDetailDialog extends JDialog {
 
         // Bottom Action Bar
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
-        bottomPanel.setBackground(HEADER_BG);
+        bottomPanel.setBackground(WHITE);
 
 
         JButton btnToggleRead = new JButton(email.isRead() ? "Mark Unread" : "Mark Read");
@@ -124,10 +124,7 @@ public class EmailDetailDialog extends JDialog {
 
         JButton btnClose = new JButton("Close");
         btnClose.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnClose.setBackground(ACCENT_BLUE);
-        btnClose.setForeground(Color.WHITE);
         btnClose.setFocusPainted(false);
-        btnClose.setBorder(BorderFactory.createEmptyBorder(6, 16, 6, 16));
         btnClose.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnClose.addActionListener(e -> dispose());
 
@@ -144,7 +141,7 @@ public class EmailDetailDialog extends JDialog {
 
     private void styleActionButton(JButton btn) {
         btn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btn.setForeground(TITLE_TEXT);
+        btn.setForeground(BLUE_DARK);
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }

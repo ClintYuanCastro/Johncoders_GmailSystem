@@ -22,11 +22,9 @@ import java.util.regex.Pattern;
 public class ComposeDialog extends JDialog {
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$");
 
-
-    // Gmail-style palette matching System 1
-    private static final Color HEADER_BG = new Color(242, 246, 252);
-    private static final Color ACCENT_BLUE = new Color(11, 87, 208);
-    private static final Color TITLE_TEXT = new Color(30, 41, 59);
+    // ---- Palette -----------------------------------------------------
+    public static final Color WHITE       = Color.WHITE;
+    public static final Color TEXT_DARK   = new Color(33, 37, 41);
 
 
     private JTextField txtRecipient;
@@ -53,11 +51,11 @@ public class ComposeDialog extends JDialog {
 
         // Header Panel (Gmail style header)
         JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(HEADER_BG);
+        headerPanel.setBackground(WHITE);
         headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 16, 10, 16));
         JLabel titleLabel = new JLabel(draft != null ? "Edit Draft" : "New Message");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        titleLabel.setForeground(TITLE_TEXT);
+        titleLabel.setForeground(TEXT_DARK);
         headerPanel.add(titleLabel, BorderLayout.WEST);
         add(headerPanel, BorderLayout.NORTH);
 
@@ -141,15 +139,12 @@ public class ComposeDialog extends JDialog {
 
         // Footer / Actions Panel
         JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
-        footerPanel.setBackground(HEADER_BG);
+        footerPanel.setBackground(WHITE);
 
 
         JButton btnSend = new JButton("Send");
         btnSend.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btnSend.setBackground(ACCENT_BLUE);
-        btnSend.setForeground(Color.WHITE);
         btnSend.setFocusPainted(false);
-        btnSend.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
         btnSend.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnSend.addActionListener((ActionEvent e) -> processSend());
 
