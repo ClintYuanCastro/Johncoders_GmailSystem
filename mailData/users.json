@@ -1,0 +1,13 @@
+[ {
+  "email" : "user@mail.com",
+  "password" : "pass",
+  "fullName" : "John Doe"
+}, {
+  "email" : "admin@mail.com",
+  "password" : "pass",
+  "fullName" : "System Admin"
+}, {
+  "email" : "resu@mail.com",
+  "password" : "ssap",
+  "fullName" : "evade"
+} ]
