@@ -7,6 +7,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.regex.Pattern;
 
 
 import prelim.group.filehandler.FileHandler;
@@ -14,6 +15,12 @@ import prelim.group.userHandling.User;
 
 
 public class SignUpPage implements ActionListener {
+
+    // Same requirement used when sending mail: something@something.tld.
+    // Any domain works (gmail.com, mail.com, yahoo.com, a company domain,
+    // etc.) - the important part is that it's a real "user@domain" address,
+    // not a plain username or phone number.
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$");
 
 
     private final JFrame frame;
@@ -58,7 +65,7 @@ public class SignUpPage implements ActionListener {
         UITheme.CardPanel card = new UITheme.CardPanel();
         card.setOpaque(false);
         card.setLayout(new GridBagLayout());
-        card.setPreferredSize(new Dimension(340, 520));
+        card.setPreferredSize(new Dimension(340, 560));
         background.add(card, new GridBagConstraints());
 
 
@@ -174,6 +181,10 @@ public class SignUpPage implements ActionListener {
             showMessage("Please fill in every field.", UITheme.DANGER);
             return;
         }
+        if (!EMAIL_PATTERN.matcher(email).matches()) {
+            showMessage("Invalid email format. Valid mails like @gmail.com, @mail.com, @slu.edu.ph, @yahoo.com", UITheme.DANGER);
+            return;
+        }
         if (!password.equals(confirmPassword)) {
             showMessage("Passwords do not match.", UITheme.DANGER);
             return;
@@ -202,7 +213,9 @@ public class SignUpPage implements ActionListener {
 
     private void showMessage(String text, Color color) {
         messageLabel.setForeground(color);
-        messageLabel.setText(text);
+        // Wrap in HTML so long messages flow onto multiple lines instead of
+        // getting clipped at the edge of the card.
+        messageLabel.setText("<html><div style='text-align:center; width:260px;'>" + text + "</div></html>");
     }
 }
 

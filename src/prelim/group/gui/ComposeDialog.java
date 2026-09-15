@@ -10,11 +10,8 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.io.File;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -31,8 +28,6 @@ public class ComposeDialog extends JDialog {
     private JTextField txtSubject;
     private JTextArea txtBody;
     private JCheckBox chkImportant;
-    private JLabel lblAttachments;
-    private List<String> attachmentPaths;
     private Email existingDraft;
     private Runnable onCompleteCallback;
 
@@ -41,7 +36,6 @@ public class ComposeDialog extends JDialog {
         super(owner, draft != null ? "Edit Draft" : "New Message", true);
         this.existingDraft = draft;
         this.onCompleteCallback = onCompleteCallback;
-        this.attachmentPaths = new ArrayList<>();
 
 
         setSize(580, 500);
@@ -89,30 +83,16 @@ public class ComposeDialog extends JDialog {
         formPanel.add(txtSubject, gbc);
 
 
-        // Header Action Bar: Attach File / Mark as Important / attachment count
+        // Header Action Bar: Mark as Important
         gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 2;
         JPanel headerToolsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         headerToolsPanel.setBackground(Color.WHITE);
-
-
-        JButton btnAddAttachment = new JButton("Attach File...");
-        btnAddAttachment.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btnAddAttachment.setFocusPainted(false);
-        btnAddAttachment.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnAddAttachment.addActionListener(e -> chooseAttachment());
-        headerToolsPanel.add(btnAddAttachment);
 
 
         chkImportant = new JCheckBox("Mark as Important");
         chkImportant.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         chkImportant.setBackground(Color.WHITE);
         headerToolsPanel.add(chkImportant);
-
-
-        lblAttachments = new JLabel("No attachments");
-        lblAttachments.setFont(new Font("Segoe UI", Font.ITALIC, 11));
-        lblAttachments.setForeground(new Color(100, 116, 139));
-        headerToolsPanel.add(lblAttachments);
 
 
         formPanel.add(headerToolsPanel, gbc);
@@ -174,30 +154,6 @@ public class ComposeDialog extends JDialog {
             txtSubject.setText(existingDraft.getSubject());
             txtBody.setText(existingDraft.getBody());
             chkImportant.setSelected(existingDraft.isImportant());
-            if (existingDraft.getAttachments() != null) {
-                attachmentPaths.addAll(existingDraft.getAttachments());
-                updateAttachmentLabel();
-            }
-        }
-    }
-
-
-    private void chooseAttachment() {
-        JFileChooser chooser = new JFileChooser();
-        int returnVal = chooser.showOpenDialog(this);
-        if (returnVal == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = chooser.getSelectedFile();
-            attachmentPaths.add(selectedFile.getAbsolutePath());
-            updateAttachmentLabel();
-        }
-    }
-
-
-    private void updateAttachmentLabel() {
-        if (attachmentPaths.isEmpty()) {
-            lblAttachments.setText("No attachments");
-        } else {
-            lblAttachments.setText("Attached: " + attachmentPaths.size() + " file(s)");
         }
     }
 
@@ -219,7 +175,7 @@ public class ComposeDialog extends JDialog {
 
 
         if (!EMAIL_PATTERN.matcher(recipient).matches()) {
-            JOptionPane.showMessageDialog(this, "Recipient email format is invalid.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Invalid email format. Please use Valid mails like @gmail.com, @yahoo.com, etc", "Validation Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
@@ -255,12 +211,10 @@ public class ComposeDialog extends JDialog {
             email.setTimestamp(realTimeTimestamp);
             email.setDraft(false);
             email.setImportant(chkImportant.isSelected());
-            email.setAttachments(attachmentPaths);
             fh.updateEmail(email);
         } else {
             email = new Email(UUID.randomUUID().toString(), sender, recipient, subject, body, realTimeTimestamp);
             email.setImportant(chkImportant.isSelected());
-            email.setAttachments(attachmentPaths);
             fh.addEmail(email);
         }
 
@@ -291,14 +245,12 @@ public class ComposeDialog extends JDialog {
             existingDraft.setBody(body);
             existingDraft.setTimestamp(realTimeTimestamp);
             existingDraft.setImportant(chkImportant.isSelected());
-            existingDraft.setAttachments(attachmentPaths);
             fh.updateEmail(existingDraft);
         } else {
             Email draft = new Email(UUID.randomUUID().toString(), sender, recipient,
                     subject.isEmpty() ? "(No Subject)" : subject, body, realTimeTimestamp);
             draft.setDraft(true);
             draft.setImportant(chkImportant.isSelected());
-            draft.setAttachments(attachmentPaths);
             fh.addEmail(draft);
         }
 

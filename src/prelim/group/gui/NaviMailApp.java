@@ -2,6 +2,7 @@ package prelim.group.gui;
 
 
 import prelim.group.filehandler.FileHandler;
+import prelim.group.login.LoginPage;
 import prelim.group.model.Email;
 import prelim.group.userHandling.CurrentUser;
 import prelim.group.userHandling.User;
@@ -808,8 +809,11 @@ public class NaviMailApp extends JFrame {
         int choice = JOptionPane.showConfirmDialog(this, "Are you sure you want to sign out?", "Sign Out", JOptionPane.YES_NO_OPTION);
         if (choice == JOptionPane.YES_OPTION) {
             CurrentUser.getInstance().logout();
-            lblUserProfile.setText("Signed Out");
-            JOptionPane.showMessageDialog(this, "You have been signed out.", "Signed Out", JOptionPane.INFORMATION_MESSAGE);
+
+            // Close the mail client and return to the login screen so the
+            // user has to sign in again before they can access their mail.
+            dispose();
+            SwingUtilities.invokeLater(LoginPage::new);
         }
     }
 

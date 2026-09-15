@@ -10,4 +10,16 @@
   "email" : "resu@mail.com",
   "password" : "ssap",
   "fullName" : "evade"
+}, {
+  "email" : "hilde@mail.com",
+  "password" : "2261893",
+  "fullName" : "Hilde"
+}, {
+  "email" : "dsa@slu.com",
+  "password" : "dsa",
+  "fullName" : "dsa"
+}, {
+  "email" : "JohnHILDE@goated.com",
+  "password" : "JohnHILDE@goated.com",
+  "fullName" : "JohnHILDE"
 } ]
