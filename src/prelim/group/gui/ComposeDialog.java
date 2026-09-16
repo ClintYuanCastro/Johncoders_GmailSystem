@@ -2,6 +2,7 @@ package prelim.group.gui;
 
 
 import prelim.group.filehandler.FileHandler;
+import prelim.group.login.UITheme;
 import prelim.group.model.Email;
 import prelim.group.userHandling.CurrentUser;
 
@@ -30,6 +31,7 @@ public class ComposeDialog extends JDialog {
     private JCheckBox chkImportant;
     private Email existingDraft;
     private Runnable onCompleteCallback;
+    private Runnable clearOwnerDim;
 
 
     public ComposeDialog(Frame owner, Email draft, Runnable onCompleteCallback) {
@@ -38,114 +40,84 @@ public class ComposeDialog extends JDialog {
         this.onCompleteCallback = onCompleteCallback;
 
 
-        setSize(580, 500);
+        setSize(560, 480);
+        setUndecorated(true);
+        setResizable(false);
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout());
+        clearOwnerDim = UITheme.dimOwner(this);
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosed(java.awt.event.WindowEvent event) {
+                if (clearOwnerDim != null) clearOwnerDim.run();
+            }
+        });
 
-
-        // Header Panel (Gmail style header)
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(WHITE);
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 16, 10, 16));
+        UITheme.GradientPanel headerPanel = new UITheme.GradientPanel();
+        headerPanel.setLayout(new GridBagLayout());
+        headerPanel.setPreferredSize(new Dimension(0, 48));
         JLabel titleLabel = new JLabel(draft != null ? "Edit Draft" : "New Message");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        titleLabel.setForeground(TEXT_DARK);
-        headerPanel.add(titleLabel, BorderLayout.WEST);
+        titleLabel.setFont(new Font("Google Sans", Font.PLAIN, 20));
+        titleLabel.setForeground(Color.WHITE);
+        headerPanel.add(titleLabel);
         add(headerPanel, BorderLayout.NORTH);
 
+        JPanel formPanel = new JPanel();
+        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
+        formPanel.setBackground(new Color(250, 251, 247));
+        formPanel.setBorder(new EmptyBorder(16, 20, 8, 20));
 
-        // Form Panel
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
-        formPanel.setBackground(Color.WHITE);
-
-
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(6, 6, 6, 6);
-
-
-        // Recipient (To:)
-        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0.1;
-        formPanel.add(new JLabel("To:"), gbc);
-        gbc.gridx = 1; gbc.weightx = 0.9;
-        txtRecipient = new JTextField();
-        txtRecipient.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        formPanel.add(txtRecipient, gbc);
-
-
-        // Subject
-        gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0.1;
-        formPanel.add(new JLabel("Subject:"), gbc);
-        gbc.gridx = 1; gbc.weightx = 0.9;
-        txtSubject = new JTextField();
-        txtSubject.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        formPanel.add(txtSubject, gbc);
-
-
-        // Header Action Bar: Mark as Important
-        gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 2;
-        JPanel headerToolsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        headerToolsPanel.setBackground(Color.WHITE);
-
-
+        JPanel recipientRow = new JPanel(new BorderLayout(10, 0));
+        recipientRow.setOpaque(false);
+        recipientRow.setPreferredSize(new Dimension(0, 40));
+        recipientRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        txtRecipient = createPillField("To:");
+        recipientRow.add(txtRecipient, BorderLayout.CENTER);
         chkImportant = new JCheckBox("Mark as Important");
-        chkImportant.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        chkImportant.setBackground(Color.WHITE);
-        headerToolsPanel.add(chkImportant);
+        chkImportant.setOpaque(false);
+        chkImportant.setFont(new Font("Google Sans Text", Font.PLAIN, 12));
+        chkImportant.setForeground(new Color(55, 65, 81));
+        chkImportant.setIcon(new StarIcon(new Color(36, 121, 194)));
+        recipientRow.add(chkImportant, BorderLayout.EAST);
+        formPanel.add(recipientRow);
+        formPanel.add(Box.createVerticalStrut(9));
 
+        txtSubject = createPillField("Subject:");
+        txtSubject.setPreferredSize(new Dimension(0, 40));
+        txtSubject.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        formPanel.add(txtSubject);
+        formPanel.add(Box.createVerticalStrut(12));
 
-        formPanel.add(headerToolsPanel, gbc);
-
-
-        // Body
-        gbc.gridx = 0; gbc.gridy = 3; gbc.weightx = 0.1; gbc.gridwidth = 1;
-        gbc.anchor = GridBagConstraints.NORTHWEST;
-        formPanel.add(new JLabel("Body:"), gbc);
-
-
-        gbc.gridx = 1; gbc.weightx = 0.9; gbc.weighty = 1.0;
-        gbc.fill = GridBagConstraints.BOTH;
         txtBody = new JTextArea();
-        txtBody.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        txtBody.setFont(new Font("Google Sans Text", Font.PLAIN, 13));
         txtBody.setLineWrap(true);
         txtBody.setWrapStyleWord(true);
+        txtBody.setBorder(new EmptyBorder(12, 12, 12, 12));
         JScrollPane scrollPane = new JScrollPane(txtBody);
-        formPanel.add(scrollPane, gbc);
-
-
+        scrollPane.setPreferredSize(new Dimension(0, 190));
+        scrollPane.setMinimumSize(new Dimension(0, 150));
+        scrollPane.setMaximumSize(new Dimension(Integer.MAX_VALUE, 190));
+        scrollPane.setBorder(new UITheme.RoundedLineBorder(new Color(225, 226, 218), 22, 8));
+        scrollPane.getViewport().setBackground(new Color(250, 251, 247));
+        formPanel.add(scrollPane);
         add(formPanel, BorderLayout.CENTER);
 
-
-        // Footer / Actions Panel
-        JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
-        footerPanel.setBackground(WHITE);
-
-
-        JButton btnSend = new JButton("Send");
-        btnSend.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btnSend.setFocusPainted(false);
-        btnSend.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 18, 8));
+        footerPanel.setBackground(new Color(250, 251, 247));
+        JButton btnSend = UITheme.roundedButton("Send", UITheme.BLUE_PRIMARY, Color.WHITE);
+        btnSend.setFont(new Font("Google Sans Text", Font.BOLD, 13));
+        btnSend.setPreferredSize(new Dimension(70, 36));
         btnSend.addActionListener((ActionEvent e) -> processSend());
 
-
-        JButton btnSaveDraft = new JButton("Save Draft");
-        btnSaveDraft.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        btnSaveDraft.setFocusPainted(false);
-        btnSaveDraft.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JButton btnSaveDraft = textButton("Save Draft");
         btnSaveDraft.addActionListener(e -> processSaveDraft());
 
-
-        JButton btnDiscard = new JButton("Discard");
-        btnDiscard.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        btnDiscard.setFocusPainted(false);
-        btnDiscard.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JButton btnDiscard = textButton("Discard");
         btnDiscard.addActionListener(e -> dispose());
 
-
-        footerPanel.add(btnSend);
-        footerPanel.add(btnSaveDraft);
         footerPanel.add(btnDiscard);
+        footerPanel.add(btnSaveDraft);
+        footerPanel.add(btnSend);
         add(footerPanel, BorderLayout.SOUTH);
 
 
@@ -157,10 +129,65 @@ public class ComposeDialog extends JDialog {
         }
     }
 
+    private JTextField createPillField(String prompt) {
+        JTextField field = new JTextField(prompt);
+        field.setFont(new Font("Google Sans Text", Font.PLAIN, 13));
+        field.setForeground(new Color(120, 125, 125));
+        field.setBorder(new UITheme.RoundedLineBorder(new Color(225, 226, 218), 24, 10));
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        field.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusGained(java.awt.event.FocusEvent event) {
+                if (field.getText().equals(prompt)) field.setText("");
+            }
+
+            @Override
+            public void focusLost(java.awt.event.FocusEvent event) {
+                if (field.getText().trim().isEmpty()) field.setText(prompt);
+            }
+        });
+        return field;
+    }
+
+    private JButton textButton(String text) {
+        JButton button = new JButton(text);
+        button.setFont(new Font("Google Sans Text", Font.PLAIN, 13));
+        button.setForeground(new Color(48, 91, 122));
+        button.setFocusPainted(false);
+        button.setContentAreaFilled(false);
+        button.setBorderPainted(false);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return button;
+    }
+
+    private static final class StarIcon implements Icon {
+        private final Color color;
+
+        private StarIcon(Color color) { this.color = color; }
+
+        @Override public int getIconWidth() { return 22; }
+        @Override public int getIconHeight() { return 22; }
+
+        @Override
+        public void paintIcon(Component component, Graphics graphics, int x, int y) {
+            Graphics2D g = (Graphics2D) graphics.create();
+            g.setColor(color);
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            Polygon star = new Polygon();
+            for (int i = 0; i < 10; i++) {
+                double angle = -Math.PI / 2 + i * Math.PI / 5;
+                int radius = i % 2 == 0 ? 10 : 4;
+                star.addPoint(x + 11 + (int) (Math.cos(angle) * radius), y + 11 + (int) (Math.sin(angle) * radius));
+            }
+            g.fillPolygon(star);
+            g.dispose();
+        }
+    }
+
 
     private void processSend() {
-        String recipient = txtRecipient.getText().trim();
-        String subject = txtSubject.getText().trim();
+        String recipient = fieldValue(txtRecipient, "To:");
+        String subject = fieldValue(txtSubject, "Subject:");
         String body = txtBody.getText();
 
 
@@ -169,32 +196,32 @@ public class ComposeDialog extends JDialog {
 
 
         if (recipient.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Recipient email is required.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            UITheme.showMessage(this, "Recipient email is required.", "Validation Error");
             return;
         }
 
 
         if (!EMAIL_PATTERN.matcher(recipient).matches()) {
-            JOptionPane.showMessageDialog(this, "Invalid email format. Please use Valid mails like @gmail.com, @yahoo.com, etc", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            UITheme.showMessage(this, "Invalid email format. Please use a valid address.", "Validation Error");
             return;
         }
 
 
         if (subject.isEmpty()) {
-            int choice = JOptionPane.showConfirmDialog(this, "Send this message without a subject?", "No Subject", JOptionPane.YES_NO_OPTION);
+            int choice = UITheme.showConfirm(this, "Send this message without a subject?", "No Subject");
             if (choice != JOptionPane.YES_OPTION) return;
         }
 
 
         FileHandler fh = FileHandler.getInstance();
         if (!fh.userExists(sender)) {
-            JOptionPane.showMessageDialog(this, "Sender account (" + sender + ") does not exist in system records.", "Account Error", JOptionPane.ERROR_MESSAGE);
+            UITheme.showMessage(this, "Sender account (" + sender + ") does not exist in system records.", "Account Error");
             return;
         }
 
 
         if (!fh.userExists(recipient)) {
-            JOptionPane.showMessageDialog(this, "Recipient account (" + recipient + ") does not exist. Unable to send.", "Account Error", JOptionPane.ERROR_MESSAGE);
+            UITheme.showMessage(this, "Recipient account (" + recipient + ") does not exist. Unable to send.", "Account Error");
             return;
         }
 
@@ -219,15 +246,15 @@ public class ComposeDialog extends JDialog {
         }
 
 
-        JOptionPane.showMessageDialog(this, "Email sent at " + realTimeTimestamp, "Sent", JOptionPane.INFORMATION_MESSAGE);
+        UITheme.showMessage(this, "Email sent at " + realTimeTimestamp, "Sent");
         dispose();
         if (onCompleteCallback != null) onCompleteCallback.run();
     }
 
 
     private void processSaveDraft() {
-        String recipient = txtRecipient.getText().trim();
-        String subject = txtSubject.getText().trim();
+        String recipient = fieldValue(txtRecipient, "To:");
+        String subject = fieldValue(txtSubject, "Subject:");
         String body = txtBody.getText();
 
 
@@ -255,9 +282,14 @@ public class ComposeDialog extends JDialog {
         }
 
 
-        JOptionPane.showMessageDialog(this, "Saved to Drafts.", "Draft Saved", JOptionPane.INFORMATION_MESSAGE);
+        UITheme.showMessage(this, "Saved to Drafts.", "Draft Saved");
         dispose();
         if (onCompleteCallback != null) onCompleteCallback.run();
+    }
+
+    private String fieldValue(JTextField field, String prompt) {
+        String value = field.getText().trim();
+        return value.equals(prompt) ? "" : value;
     }
 }
 

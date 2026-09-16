@@ -2,6 +2,7 @@ package prelim.group.gui;
 
 
 import prelim.group.filehandler.FileHandler;
+import prelim.group.login.UITheme;
 import prelim.group.model.Email;
 
 
@@ -21,6 +22,7 @@ public class EmailDetailDialog extends JDialog {
 
     private Email email;
     private Runnable onRefreshCallback;
+    private Runnable clearOwnerDim;
 
 
     public EmailDetailDialog(Frame owner, Email email, Runnable onRefreshCallback) {
@@ -38,6 +40,13 @@ public class EmailDetailDialog extends JDialog {
         setSize(650, 580);
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout());
+        clearOwnerDim = UITheme.dimOwner(this);
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosed(java.awt.event.WindowEvent event) {
+                if (clearOwnerDim != null) clearOwnerDim.run();
+            }
+        });
 
 
         // Header Panel (Gmail style header)

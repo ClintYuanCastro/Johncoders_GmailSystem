@@ -3,6 +3,7 @@ package prelim.group.gui;
 
 import prelim.group.filehandler.FileHandler;
 import prelim.group.login.LoginPage;
+import prelim.group.login.UITheme;
 import prelim.group.model.Email;
 import prelim.group.userHandling.CurrentUser;
 import prelim.group.userHandling.User;
@@ -48,6 +49,7 @@ public class NaviMailApp extends JFrame {
     private JLabel lblUserProfile;
     private JLabel inboxBadgeLabel;
     private JLabel sectionTitleLabel;
+    private JPanel emptyStatePanel;
     private final List<JPanel> sidebarPanels = new ArrayList<>();
 
 
@@ -58,24 +60,26 @@ public class NaviMailApp extends JFrame {
     public NaviMailApp() {
         setTitle("Mail Client");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1280, 800);
+        setSize(1060, 623);
+        setMinimumSize(new Dimension(900, 560));
         setLocationRelativeTo(null);
 
 
         JPanel rootPanel = new JPanel(new BorderLayout());
-        rootPanel.setBackground(BLUE_DARK);
+        rootPanel.setBackground(new Color(235, 241, 247));
 
+        rootPanel.add(createLeftNavigation(), BorderLayout.WEST);
 
-        rootPanel.add(createTopHeader(), BorderLayout.NORTH);
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(new Color(235, 241, 247));
+        mainPanel.add(createTopHeader(), BorderLayout.NORTH);
 
-
-        JPanel bodyPanel = new JPanel(new BorderLayout());
-        bodyPanel.setOpaque(false);
-        bodyPanel.add(createLeftNavigation(), BorderLayout.WEST);
-        bodyPanel.add(createMainContentCard(), BorderLayout.CENTER);
-
-
-        rootPanel.add(bodyPanel, BorderLayout.CENTER);
+        JPanel contentArea = new JPanel(new BorderLayout());
+        contentArea.setOpaque(false);
+        contentArea.setBorder(new EmptyBorder(0, 20, 14, 20));
+        contentArea.add(createMainContentCard(), BorderLayout.CENTER);
+        mainPanel.add(contentArea, BorderLayout.CENTER);
+        rootPanel.add(mainPanel, BorderLayout.CENTER);
         setContentPane(rootPanel);
 
 
@@ -117,64 +121,31 @@ public class NaviMailApp extends JFrame {
     // ---------------------------------------------------------------
     private JPanel createTopHeader() {
         JPanel header = new JPanel(new BorderLayout(15, 0));
-        header.setOpaque(false);
-        header.setBorder(new EmptyBorder(10, 20, 10, 20));
-
-
-        // Left Branding
-        JPanel leftBrand = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
-        leftBrand.setOpaque(false);
-
-
-        JLabel mascotLabel = new JLabel();
-        ImageIcon naviImg = loadIcon("navi.png", 40, 40);
-        if (naviImg != null) {
-            mascotLabel.setIcon(naviImg);
-        } else {
-            mascotLabel.setText("\uD83D\uDC3B");
-            mascotLabel.setFont(new Font("Segoe UI", Font.PLAIN, 22));
-        }
-
-
-        JLabel lblLogo = new JLabel("NaviMail");
-        lblLogo.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        lblLogo.setForeground(Color.WHITE);
-
-
-        leftBrand.add(mascotLabel);
-        leftBrand.add(lblLogo);
-        header.add(leftBrand, BorderLayout.WEST);
+        header.setBackground(new Color(235, 241, 247));
+        header.setBorder(new EmptyBorder(10, 12, 10, 20));
 
 
         // Center Search Bar
         JPanel searchContainer = new JPanel(new BorderLayout());
 
         searchContainer.setOpaque(false);
-        searchContainer.setBorder(new EmptyBorder(0, 23, 0, 50));
+        searchContainer.setBorder(new EmptyBorder(0, 14, 0, 24));
 
 
-        JPanel searchBar = new JPanel(new BorderLayout(8, 0));
-        searchBar.setBackground(BLUE_LIGHT);
-        searchBar.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BLUE_LIGHT, 1, true),
-                new EmptyBorder(6, 16, 6, 10)
-        ));
+        JPanel searchBar = new RoundedPanel(28, Color.WHITE, new Color(203, 213, 225));
+        searchBar.setLayout(new BorderLayout(8, 0));
+        searchBar.setPreferredSize(new Dimension(360, 38));
+        searchBar.setBorder(new EmptyBorder(6, 12, 6, 12));
 
 
-        JLabel searchIcon = new JLabel();
-        ImageIcon searchImg = loadIcon("search.png", 18, 18);
-        if (searchImg != null) {
-            searchIcon.setIcon(searchImg);
-        } else {
-            searchIcon.setText("\uD83D\uDD0D");
-            searchIcon.setForeground(TEXT_MUTED);
-        }
+        JLabel searchIcon = new JLabel(new VectorIcon("search", 18, 18, TEXT_MUTED));
 
 
         txtSearch = new JTextField();
         txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         txtSearch.setBorder(null);
         txtSearch.setOpaque(false);
+        txtSearch.setToolTipText("Search mail");
         txtSearch.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
             public void keyReleased(java.awt.event.KeyEvent evt) {
@@ -183,19 +154,8 @@ public class NaviMailApp extends JFrame {
         });
 
 
-        JButton btnSearch = new JButton("Search");
-        btnSearch.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btnSearch.setContentAreaFilled(false);
-        btnSearch.setFocusPainted(false);
-        btnSearch.setForeground(ACCENT_BLUE);
-        btnSearch.setBorder(new EmptyBorder(0, 8, 0, 0));
-        btnSearch.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnSearch.addActionListener(e -> refreshEmailList());
-
-
         searchBar.add(searchIcon, BorderLayout.WEST);
         searchBar.add(txtSearch, BorderLayout.CENTER);
-        searchBar.add(btnSearch, BorderLayout.EAST);
         searchContainer.add(searchBar, BorderLayout.CENTER);
         header.add(searchContainer, BorderLayout.CENTER);
 
@@ -209,27 +169,16 @@ public class NaviMailApp extends JFrame {
         String userDisplay = currentUser != null ? currentUser.getFullName() + " (" + currentUser.getEmail() + ")" : "Guest";
         lblUserProfile = new JLabel(userDisplay);
         lblUserProfile.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblUserProfile.setForeground(Color.WHITE);
+        lblUserProfile.setForeground(new Color(55, 65, 81));
 
 
-        JLabel avatarLabel = new JLabel();
-        ImageIcon accountImg = loadIcon("account.png", 28, 28);
-        if (accountImg != null) {
-            avatarLabel.setIcon(accountImg);
-        } else {
-            avatarLabel.setText(" I ");
-            avatarLabel.setOpaque(true);
-            avatarLabel.setBackground(ACCENT_BLUE);
-            avatarLabel.setForeground(Color.WHITE);
-            avatarLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
-            avatarLabel.setPreferredSize(new Dimension(32, 32));
-            avatarLabel.setBorder(BorderFactory.createLineBorder(Color.WHITE, 1, true));
-        }
+        JLabel avatarLabel = new JLabel(new VectorIcon("profile", 28, 28, BLUE_DARK));
+        avatarLabel.setPreferredSize(new Dimension(32, 32));
 
 
         JButton btnSignOut = new JButton("Sign Out");
         btnSignOut.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btnSignOut.setForeground(Color.WHITE);
+        btnSignOut.setForeground(new Color(55, 65, 81));
         btnSignOut.setContentAreaFilled(false);
         btnSignOut.setFocusPainted(false);
         btnSignOut.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -250,26 +199,38 @@ public class NaviMailApp extends JFrame {
     // Left Sidebar: Compose pill + navigation tabs
     // ---------------------------------------------------------------
     private JPanel createLeftNavigation() {
-        JPanel sidebar = new JPanel();
+        JPanel sidebar = new UITheme.GradientPanel();
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
-        sidebar.setOpaque(false);
-        sidebar.setPreferredSize(new Dimension(220, 0));
-        sidebar.setBorder(new EmptyBorder(10, 15, 10, 15));
+        sidebar.setPreferredSize(new Dimension(185, 0));
+        sidebar.setMinimumSize(new Dimension(185, 0));
+        sidebar.setBorder(new EmptyBorder(12, 10, 10, 10));
+
+        JPanel brand = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        brand.setOpaque(false);
+        brand.setAlignmentX(Component.LEFT_ALIGNMENT);
+        brand.setMaximumSize(new Dimension(165, 38));
+
+        JLabel mascotLabel = new JLabel();
+        ImageIcon naviLogo = loadIcon("navi.png", 30, 30);
+        mascotLabel.setIcon(naviLogo != null
+            ? naviLogo
+            : new VectorIcon("brand", 28, 28, new Color(160, 220, 246)));
+
+        JLabel lblLogo = new JLabel("NaviMail");
+        lblLogo.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblLogo.setForeground(Color.WHITE);
+        brand.add(mascotLabel);
+        brand.add(lblLogo);
+        sidebar.add(brand);
+        sidebar.add(Box.createVerticalStrut(18));
 
 
-        JButton btnCompose = new JButton(" + Compose");
-        ImageIcon composeImg = loadIcon("compose.png", 20, 20);
-        if (composeImg != null) {
-            btnCompose.setIcon(composeImg);
-        }
-        btnCompose.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnCompose.setBackground(BLUE_DARK);
-        btnCompose.setForeground(new Color(0, 29, 53));
-        btnCompose.setFocusPainted(false);
-        btnCompose.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
-        btnCompose.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JButton btnCompose = UITheme.roundedButton("Compose", Color.WHITE, BLUE_DARK);
+        btnCompose.setIcon(new VectorIcon("compose", 20, 20, BLUE_DARK));
+        btnCompose.setIconTextGap(8);
+        btnCompose.setFont(new Font("Google Sans Text", Font.BOLD, 14));
         btnCompose.setAlignmentX(Component.LEFT_ALIGNMENT);
-        btnCompose.setMaximumSize(new Dimension(220, 44));
+        btnCompose.setMaximumSize(new Dimension(165, 40));
         btnCompose.addActionListener(e -> {
             ComposeDialog dialog = new ComposeDialog(this, null, this::refreshEmailList);
             dialog.setVisible(true);
@@ -299,10 +260,10 @@ public class NaviMailApp extends JFrame {
 
 
     private JPanel createNavItem(String text, String iconName, String tabKey, boolean active, JLabel badge) {
-        JPanel navItem = new JPanel(new BorderLayout(10, 0));
-        navItem.setOpaque(true);
-        navItem.setMaximumSize(new Dimension(200, 36));
-        navItem.setPreferredSize(new Dimension(200, 36));
+        RoundedPanel navItem = new RoundedPanel(9, active ? new Color(78, 139, 202, 185) : new Color(0, 0, 0, 0), null);
+        navItem.setLayout(new BorderLayout(10, 0));
+        navItem.setMaximumSize(new Dimension(165, 36));
+        navItem.setPreferredSize(new Dimension(165, 36));
         navItem.setCursor(new Cursor(Cursor.HAND_CURSOR));
         navItem.setBorder(new EmptyBorder(6, 16, 6, 16));
         navItem.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -310,19 +271,14 @@ public class NaviMailApp extends JFrame {
 
 
         sidebarPanels.add(navItem);
-        navItem.setBackground(active ? BLUE_PRIMARY : BLUE_DARK);
-
-
         JLabel label = new JLabel(text);
         label.setFont(new Font("Segoe UI", active ? Font.BOLD : Font.PLAIN, 13));
         label.setForeground(Color.WHITE);
 
 
         if (iconName != null) {
-            ImageIcon icon = loadIcon(iconName, 18, 18);
-            if (icon != null) {
-                label.setIcon(icon);
-            }
+            label.setIcon(new VectorIcon(iconName, 18, 18, new Color(226, 232, 240)));
+            label.setIconTextGap(8);
         }
 
 
@@ -350,7 +306,11 @@ public class NaviMailApp extends JFrame {
     private void setActiveSidebarItem(JPanel selectedPanel) {
         for (JPanel panel : sidebarPanels) {
             boolean isSelected = (panel == selectedPanel);
-            panel.setBackground(isSelected ? BLUE_PRIMARY : BLUE_DARK);
+            if (panel instanceof RoundedPanel roundedPanel) {
+                roundedPanel.setFillColor(isSelected
+                        ? new Color(78, 139, 202, 185)
+                        : new Color(0, 0, 0, 0));
+            }
             for (Component comp : panel.getComponents()) {
                 if (comp instanceof JLabel && comp != inboxBadgeLabel) {
                     comp.setFont(new Font("Segoe UI", isSelected ? Font.BOLD : Font.PLAIN, 13));
@@ -369,31 +329,22 @@ public class NaviMailApp extends JFrame {
         JPanel card = new JPanel(new BorderLayout());
         card.setBackground(Color.WHITE);
         card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(WHITE, 1, true),
-                new EmptyBorder(10, 15, 10, 15)
+            BorderFactory.createLineBorder(new Color(226, 232, 240), 1, true),
+            new EmptyBorder(12, 16, 16, 16)
         ));
 
 
-        // Section title (reflects active nav tab), styled like an active tab underline
-        JPanel sectionBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        sectionBar.setOpaque(false);
-        sectionBar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, WHITE));
-
-
+        // Page title sits above the white toolbar/content card.
         sectionTitleLabel = new JLabel("Inbox");
-        sectionTitleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        sectionTitleLabel.setForeground(ACCENT_BLUE);
-        sectionTitleLabel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 3, 0, ACCENT_BLUE),
-                new EmptyBorder(8, 4, 8, 20)
-        ));
-        sectionBar.add(sectionTitleLabel);
+        sectionTitleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        sectionTitleLabel.setForeground(new Color(30, 41, 59));
+        sectionTitleLabel.setBorder(new EmptyBorder(0, 0, 12, 0));
 
 
         // Action Toolbar
         JPanel topToolbar = new JPanel(new BorderLayout());
         topToolbar.setOpaque(false);
-        topToolbar.setBorder(new EmptyBorder(8, 0, 8, 5));
+        topToolbar.setBorder(new EmptyBorder(12, 0, 12, 0));
 
 
         JPanel leftActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
@@ -482,7 +433,6 @@ public class NaviMailApp extends JFrame {
         JPanel northStack = new JPanel();
         northStack.setLayout(new BoxLayout(northStack, BoxLayout.Y_AXIS));
         northStack.setOpaque(false);
-        northStack.add(sectionBar);
         northStack.add(topToolbar);
 
 
@@ -513,6 +463,10 @@ public class NaviMailApp extends JFrame {
         emailTable.setIntercellSpacing(new Dimension(0, 0));
         emailTable.setSelectionBackground(new Color(238, 242, 246));
         emailTable.setSelectionForeground(Color.BLACK);
+        emailTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        emailTable.getTableHeader().setForeground(new Color(71, 85, 105));
+        emailTable.getTableHeader().setBackground(new Color(248, 250, 252));
+        emailTable.getTableHeader().setPreferredSize(new Dimension(0, 32));
 
 
         emailTable.getColumnModel().getColumn(0).setMaxWidth(30);
@@ -522,21 +476,15 @@ public class NaviMailApp extends JFrame {
         emailTable.getColumnModel().getColumn(4).setPreferredWidth(140);
 
 
-        ImageIcon starImg = loadIcon("star.png", 16, 16);
+        Icon starImg = new VectorIcon("star", 18, 18, new Color(234, 179, 8));
         emailTable.getColumnModel().getColumn(1).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 label.setHorizontalAlignment(JLabel.CENTER);
                 if ("\u2605".equals(value)) {
-                    if (starImg != null) {
-                        label.setIcon(starImg);
-                        label.setText("");
-                    } else {
-                        label.setIcon(null);
-                        label.setText("\u2605");
-                        label.setForeground(new Color(234, 179, 8));
-                    }
+                    label.setIcon(starImg);
+                    label.setText("");
                 } else {
                     label.setIcon(null);
                     label.setText("\u2606");
@@ -592,17 +540,88 @@ public class NaviMailApp extends JFrame {
         tableScroll.getViewport().setBackground(Color.WHITE);
 
 
-        card.add(tableScroll, BorderLayout.CENTER);
+        emptyStatePanel = createEmptyStatePanel();
+        JPanel contentSwitcher = new JPanel(new CardLayout());
+        contentSwitcher.setOpaque(false);
+        contentSwitcher.setBorder(BorderFactory.createLineBorder(new Color(241, 245, 249)));
+        contentSwitcher.add(tableScroll, "table");
+        contentSwitcher.add(emptyStatePanel, "empty");
+        card.add(contentSwitcher, BorderLayout.CENTER);
 
 
-        return card;
+        JPanel pageArea = new JPanel(new BorderLayout());
+        pageArea.setOpaque(false);
+        pageArea.add(sectionTitleLabel, BorderLayout.NORTH);
+        pageArea.add(card, BorderLayout.CENTER);
+        return pageArea;
+    }
+
+    private JPanel createFooter() {
+        JPanel footer = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 8));
+        footer.setOpaque(false);
+        footer.setPreferredSize(new Dimension(0, 34));
+
+        JLabel version = new JLabel("NaviMail v2.5 (c) 2024");
+        version.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        version.setForeground(new Color(100, 116, 139));
+        footer.add(version);
+        return footer;
+    }
+
+    private JPanel createEmptyStatePanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(Color.WHITE);
+
+        JPanel messageGroup = new JPanel();
+        messageGroup.setLayout(new BoxLayout(messageGroup, BoxLayout.Y_AXIS));
+        messageGroup.setOpaque(false);
+
+        JLabel illustration = new JLabel(new EmptyMailboxIcon());
+        illustration.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel title = new JLabel("Your inbox is empty.");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        title.setForeground(new Color(55, 65, 81));
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel subtitle = new JLabel("Messages will appear here once received.");
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        subtitle.setForeground(new Color(75, 85, 99));
+        subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        messageGroup.add(illustration);
+        messageGroup.add(Box.createVerticalStrut(12));
+        messageGroup.add(title);
+        messageGroup.add(Box.createVerticalStrut(4));
+        messageGroup.add(subtitle);
+
+        panel.add(messageGroup, new GridBagConstraints(
+            0, 0, 1, 1, 1, 1,
+            GridBagConstraints.CENTER,
+            GridBagConstraints.NONE,
+            new Insets(12, 12, 12, 12),
+            0, 0
+        ));
+        return panel;
+    }
+
+    private void updateEmptyState(boolean isEmpty) {
+        if (emptyStatePanel == null || emptyStatePanel.getParent() == null) return;
+        CardLayout layout = (CardLayout) emptyStatePanel.getParent().getLayout();
+        layout.show(emptyStatePanel.getParent(), isEmpty ? "empty" : "table");
     }
 
 
     private void styleToolbarButton(JButton btn) {
         btn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         btn.setForeground(new Color(30, 41, 59));
+        btn.setBackground(Color.WHITE);
         btn.setFocusPainted(false);
+        btn.setContentAreaFilled(true);
+        btn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(203, 213, 225)),
+                new EmptyBorder(6, 10, 6, 10)
+        ));
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 
@@ -680,6 +699,7 @@ public class NaviMailApp extends JFrame {
 
 
         int totalItems = currentFilteredEmails.size();
+        updateEmptyState(totalItems == 0);
         int maxPages = (int) Math.ceil((double) totalItems / ITEMS_PER_PAGE);
         if (maxPages == 0) maxPages = 1;
 
@@ -744,7 +764,7 @@ public class NaviMailApp extends JFrame {
     private void processDeleteSelected() {
         List<String> ids = getSelectedEmailIds();
         if (ids.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No emails selected.", "Selection Required", JOptionPane.WARNING_MESSAGE);
+            UITheme.showMessage(this, "No emails selected.", "Selection Required");
             return;
         }
 
@@ -768,7 +788,7 @@ public class NaviMailApp extends JFrame {
     private void processToggleReadUnreadSelected() {
         List<String> ids = getSelectedEmailIds();
         if (ids.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No emails selected.", "Selection Required", JOptionPane.WARNING_MESSAGE);
+            UITheme.showMessage(this, "No emails selected.", "Selection Required");
             return;
         }
 
@@ -788,7 +808,7 @@ public class NaviMailApp extends JFrame {
     private void processArchiveSelected() {
         List<String> ids = getSelectedEmailIds();
         if (ids.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No emails selected.", "Selection Required", JOptionPane.WARNING_MESSAGE);
+            UITheme.showMessage(this, "No emails selected.", "Selection Required");
             return;
         }
 
@@ -806,7 +826,7 @@ public class NaviMailApp extends JFrame {
 
 
     private void processSignOut() {
-        int choice = JOptionPane.showConfirmDialog(this, "Are you sure you want to sign out?", "Sign Out", JOptionPane.YES_NO_OPTION);
+        int choice = UITheme.showConfirm(this, "Are you sure you want to sign out?", "Sign Out");
         if (choice == JOptionPane.YES_OPTION) {
             CurrentUser.getInstance().logout();
 
@@ -842,5 +862,150 @@ public class NaviMailApp extends JFrame {
             NaviMailApp app = new NaviMailApp();
             app.setVisible(true);
         });
+    }
+
+    private static final class RoundedPanel extends JPanel {
+        private final int radius;
+        private Color fillColor;
+        private final Color borderColor;
+
+        private RoundedPanel(int radius, Color fillColor, Color borderColor) {
+            this.radius = radius;
+            this.fillColor = fillColor;
+            this.borderColor = borderColor;
+            setOpaque(false);
+        }
+
+        private void setFillColor(Color fillColor) {
+            this.fillColor = fillColor;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            Graphics2D g = (Graphics2D) graphics.create();
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            if (fillColor.getAlpha() > 0) {
+                g.setColor(fillColor);
+                g.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
+            }
+            if (borderColor != null) {
+                g.setColor(borderColor);
+                g.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
+            }
+            g.dispose();
+            super.paintComponent(graphics);
+        }
+    }
+
+    private static final class VectorIcon implements Icon {
+        private final String type;
+        private final int size;
+        private final Color color;
+
+        private VectorIcon(String type, int width, int height, Color color) {
+            this.type = type;
+            this.size = Math.min(width, height);
+            this.color = color;
+        }
+
+        @Override public int getIconWidth() { return size; }
+        @Override public int getIconHeight() { return size; }
+
+        @Override
+        public void paintIcon(Component component, Graphics graphics, int x, int y) {
+            Graphics2D g = (Graphics2D) graphics.create();
+            g.translate(x, y);
+            g.setColor(color);
+            g.setStroke(new BasicStroke(1.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            if (type.equals("search")) {
+                g.drawOval(2, 2, size - 8, size - 8);
+                g.drawLine(size - 7, size - 7, size - 2, size - 2);
+            } else if (type.equals("profile")) {
+                g.drawOval(1, 1, size - 3, size - 3);
+                g.fillOval(size / 2 - 4, 5, 8, 8);
+                g.drawArc(size / 2 - 9, size / 2, 18, 14, 0, 180);
+            } else if (type.equals("brand")) {
+                g.fillOval(3, 2, size - 6, size - 5);
+                g.setColor(BLUE_DARK);
+                g.fillOval(size / 2 - 2, 7, 4, 4);
+                g.drawLine(size / 2 - 5, size - 5, size / 2 - 7, size - 1);
+                g.drawLine(size / 2 + 5, size - 5, size / 2 + 7, size - 1);
+            } else if (type.equals("compose")) {
+                g.drawRect(2, 3, size - 7, size - 7);
+                g.drawLine(size - 8, size - 4, size - 2, size - 10);
+                g.drawLine(size - 5, size - 13, size - 2, size - 10);
+            } else if (type.contains("inbox")) {
+                g.drawRoundRect(1, 4, size - 3, size - 6, 3, 3);
+                g.drawLine(2, 5, size / 2, size / 2 + 1);
+                g.drawLine(size / 2, size / 2 + 1, size - 2, 5);
+            } else if (type.contains("sent")) {
+                Polygon arrow = new Polygon(new int[]{2, size - 2, 2}, new int[]{size / 2, 2, size - 2}, 3);
+                g.fillPolygon(arrow);
+            } else if (type.contains("star")) {
+                Polygon star = new Polygon();
+                for (int i = 0; i < 10; i++) {
+                    double angle = -Math.PI / 2 + i * Math.PI / 5;
+                    int radius = i % 2 == 0 ? size / 2 - 1 : size / 4;
+                    star.addPoint(size / 2 + (int) (Math.cos(angle) * radius), size / 2 + (int) (Math.sin(angle) * radius));
+                }
+                g.fillPolygon(star);
+            } else if (type.contains("trash")) {
+                g.drawRect(4, 5, size - 8, size - 6);
+                g.drawLine(2, 4, size - 2, 4);
+                g.drawLine(size / 2 - 3, 2, size / 2 + 3, 2);
+            } else if (type.contains("snooze")) {
+                g.drawOval(2, 2, size - 4, size - 4);
+                g.drawLine(size / 2, size / 2, size / 2, 5);
+                g.drawLine(size / 2, size / 2, size - 5, size / 2);
+            } else {
+                g.drawRoundRect(2, 3, size - 5, size - 7, 3, 3);
+            }
+            g.dispose();
+        }
+    }
+
+    private static final class EmptyMailboxIcon implements Icon {
+        private static final int WIDTH = 82;
+        private static final int HEIGHT = 76;
+
+        @Override
+        public int getIconWidth() {
+            return WIDTH;
+        }
+
+        @Override
+        public int getIconHeight() {
+            return HEIGHT;
+        }
+
+        @Override
+        public void paintIcon(Component component, Graphics graphics, int x, int y) {
+            Graphics2D g = (Graphics2D) graphics.create();
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g.translate(x, y);
+
+            g.setColor(new Color(226, 235, 244));
+            g.fillOval(14, 5, 52, 52);
+            g.setColor(new Color(252, 214, 190));
+            g.fillRect(36, 54, 8, 19);
+            g.setColor(new Color(55, 65, 81));
+            g.setStroke(new BasicStroke(2f));
+            g.drawRoundRect(18, 25, 36, 30, 8, 8);
+            g.drawLine(18, 39, 54, 39);
+            g.drawLine(36, 25, 36, 39);
+            g.setColor(new Color(246, 156, 157));
+            g.fillRect(45, 14, 15, 12);
+            g.setColor(new Color(55, 65, 81));
+            g.drawLine(45, 14, 45, 28);
+            g.drawLine(45, 14, 60, 16);
+            g.drawLine(60, 16, 60, 26);
+            g.drawLine(60, 26, 45, 28);
+            g.drawLine(10, 18, 6, 14);
+            g.drawLine(15, 10, 14, 4);
+            g.drawLine(22, 12, 26, 7);
+            g.dispose();
+        }
     }
 }

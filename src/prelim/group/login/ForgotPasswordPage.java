@@ -9,6 +9,7 @@ import java.awt.event.ActionListener;
 
 
 public class ForgotPasswordPage extends JDialog implements ActionListener {
+    private static ForgotPasswordPage activeDialog;
 
 
     private JRadioButton emailOption;
@@ -16,6 +17,7 @@ public class ForgotPasswordPage extends JDialog implements ActionListener {
     private JTextField contactField;
     private JButton sendCodeButton;
     private JLabel statusLabel;
+    private Runnable clearOwnerDim;
 
 
     /**
@@ -24,10 +26,25 @@ public class ForgotPasswordPage extends JDialog implements ActionListener {
      */
     public ForgotPasswordPage(Frame owner) {
         super(owner, "Reset Password", true);
+        if (activeDialog != null && activeDialog.isDisplayable()) {
+            activeDialog.toFront();
+            activeDialog.requestFocus();
+            dispose();
+            return;
+        }
+        activeDialog = this;
         setSize(380, 420);
         setMinimumSize(new Dimension(340, 400));
         setLocationRelativeTo(owner);
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        clearOwnerDim = UITheme.dimOwner(this);
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosed(java.awt.event.WindowEvent event) {
+                if (activeDialog == ForgotPasswordPage.this) activeDialog = null;
+                if (clearOwnerDim != null) clearOwnerDim.run();
+            }
+        });
 
 
         UITheme.GradientPanel background = new UITheme.GradientPanel();

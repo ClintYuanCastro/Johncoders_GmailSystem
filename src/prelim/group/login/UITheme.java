@@ -7,6 +7,8 @@ package prelim.group.login;
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public final class UITheme {
@@ -63,6 +65,126 @@ public final class UITheme {
         button.setOpaque(false);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return button;
+    }
+
+    public static JButton outlinedButton(String text, Color foreground) {
+        JButton button = new JButton(text);
+        button.setFont(FONT_BUTTON.deriveFont(Font.PLAIN, 13f));
+        button.setForeground(foreground);
+        button.setFocusPainted(false);
+        button.setContentAreaFilled(false);
+        button.setOpaque(false);
+        button.setBorder(new RoundedLineBorder(new Color(191, 209, 228), 12, 6));
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return button;
+    }
+
+    public static void showMessage(Component parent, String message, String title) {
+        showDialog(parent, message, title, false);
+    }
+
+    public static int showConfirm(Component parent, String message, String title) {
+        return showDialog(parent, message, title, true);
+    }
+
+    public static Runnable dimOwner(Window child) {
+        List<JWindow> overlays = new ArrayList<>();
+        Window owner = child == null ? null : child.getOwner();
+        while (owner != null) {
+            if (owner.isDisplayable()) {
+                Rectangle bounds = owner.getBounds();
+                Point location = owner.getLocationOnScreen();
+                JWindow overlay = new JWindow(owner);
+                overlay.setBackground(new Color(0, 0, 0, 0));
+                JPanel dimmer = new JPanel() {
+                    @Override
+                    protected void paintComponent(Graphics graphics) {
+                        Graphics2D g = (Graphics2D) graphics.create();
+                        g.setColor(new Color(5, 24, 46, 125));
+                        g.fillRect(0, 0, getWidth(), getHeight());
+                        g.dispose();
+                    }
+                };
+                dimmer.setOpaque(false);
+                overlay.setContentPane(dimmer);
+                overlay.setBounds(location.x, location.y, bounds.width, bounds.height);
+                overlay.setFocusableWindowState(false);
+                overlay.setAlwaysOnTop(false);
+                overlay.setVisible(true);
+                overlays.add(overlay);
+            }
+            owner = owner.getOwner();
+        }
+        return () -> overlays.forEach(Window::dispose);
+    }
+
+    private static int showDialog(Component parent, String message, String title, boolean confirm) {
+        Window owner = parent instanceof Window window
+            ? window
+            : SwingUtilities.getWindowAncestor(parent);
+        JDialog dialog = new JDialog(owner, title, Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setUndecorated(true);
+        Runnable clearDim = dimOwner(dialog);
+        JPanel surface = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics graphics) {
+                Graphics2D g = (Graphics2D) graphics.create();
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g.setColor(WHITE);
+                g.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 18, 18);
+                g.setColor(new Color(191, 209, 228));
+                g.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 18, 18);
+                g.dispose();
+                super.paintComponent(graphics);
+            }
+        };
+        surface.setOpaque(false);
+
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(BLUE_LIGHT);
+        header.setBorder(new javax.swing.border.EmptyBorder(12, 16, 10, 16));
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        titleLabel.setForeground(BLUE_DARK);
+        header.add(titleLabel, BorderLayout.WEST);
+        surface.add(header, BorderLayout.NORTH);
+
+        JLabel messageLabel = new JLabel("<html><div style='width:245px'>" + escapeHtml(message) + "</div></html>");
+        messageLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        messageLabel.setForeground(TEXT_DARK);
+        JPanel body = new JPanel(new BorderLayout());
+        body.setBackground(WHITE);
+        body.setBorder(new javax.swing.border.EmptyBorder(15, 18, 12, 18));
+        body.add(messageLabel, BorderLayout.CENTER);
+        surface.add(body, BorderLayout.CENTER);
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        actions.setBackground(WHITE);
+        actions.setBorder(new javax.swing.border.EmptyBorder(0, 14, 12, 14));
+        final int[] result = {JOptionPane.NO_OPTION};
+        if (confirm) {
+            JButton no = outlinedButton("No", BLUE_DARK);
+            no.addActionListener(e -> dialog.dispose());
+            JButton yes = roundedButton("Yes", BLUE_PRIMARY, WHITE);
+            yes.addActionListener(e -> { result[0] = JOptionPane.YES_OPTION; dialog.dispose(); });
+            actions.add(no);
+            actions.add(yes);
+        } else {
+            JButton ok = outlinedButton("OK", BLUE_PRIMARY);
+            ok.addActionListener(e -> dialog.dispose());
+            actions.add(ok);
+        }
+        surface.add(actions, BorderLayout.SOUTH);
+        dialog.setContentPane(surface);
+        dialog.setSize(confirm ? 340 : 380, 155);
+        dialog.setLocationRelativeTo(parent);
+        dialog.setVisible(true);
+        clearDim.run();
+        return result[0];
+    }
+
+    private static String escapeHtml(String value) {
+        return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>");
     }
 
 
