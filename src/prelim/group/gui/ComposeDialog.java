@@ -45,13 +45,31 @@ public class ComposeDialog extends JDialog {
         setResizable(false);
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout());
+        setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         clearOwnerDim = UITheme.dimOwner(this);
         addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
+            public void windowClosing(java.awt.event.WindowEvent event) {
+                dispose();
+            }
+
+            @Override
             public void windowClosed(java.awt.event.WindowEvent event) {
-                if (clearOwnerDim != null) clearOwnerDim.run();
+                if (clearOwnerDim != null) {
+                    Runnable toRun = clearOwnerDim;
+                    clearOwnerDim = null;
+                    try {
+                        toRun.run();
+                    } catch (Exception ignored) {}
+                }
             }
         });
+
+        getRootPane().registerKeyboardAction(
+                e -> dispose(),
+                KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ESCAPE, 0),
+                JComponent.WHEN_IN_FOCUSED_WINDOW
+        );
 
         UITheme.GradientPanel headerPanel = new UITheme.GradientPanel();
         headerPanel.setLayout(new GridBagLayout());

@@ -40,13 +40,25 @@ public class EmailDetailDialog extends JDialog {
         setSize(650, 580);
         setLocationRelativeTo(owner);
         setLayout(new BorderLayout());
+        setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         clearOwnerDim = UITheme.dimOwner(this);
         addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
+            public void windowClosing(java.awt.event.WindowEvent event) {
+                dispose();
+            }
+
+            @Override
             public void windowClosed(java.awt.event.WindowEvent event) {
-                if (clearOwnerDim != null) clearOwnerDim.run();
+                closeAndCleanup();
             }
         });
+
+        getRootPane().registerKeyboardAction(
+                e -> dispose(),
+                KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ESCAPE, 0),
+                JComponent.WHEN_IN_FOCUSED_WINDOW
+        );
 
 
         // Header Panel (Gmail style header)
@@ -114,7 +126,6 @@ public class EmailDetailDialog extends JDialog {
         btnToggleRead.addActionListener(e -> {
             email.setRead(!email.isRead());
             FileHandler.getInstance().updateEmail(email);
-            if (onRefreshCallback != null) onRefreshCallback.run();
             dispose();
         });
 
@@ -124,7 +135,6 @@ public class EmailDetailDialog extends JDialog {
         btnArchive.addActionListener(e -> {
             email.setArchived(!email.isArchived());
             FileHandler.getInstance().updateEmail(email);
-            if (onRefreshCallback != null) onRefreshCallback.run();
             dispose();
         });
 
@@ -134,7 +144,6 @@ public class EmailDetailDialog extends JDialog {
         btnTrash.addActionListener(e -> {
             email.setTrashed(!email.isTrashed());
             FileHandler.getInstance().updateEmail(email);
-            if (onRefreshCallback != null) onRefreshCallback.run();
             dispose();
         });
 
@@ -204,5 +213,23 @@ public class EmailDetailDialog extends JDialog {
         File file = new File(attachmentPath);
         String fileName = file.getName();
         return fileName.isEmpty() ? attachmentPath : fileName;
+    }
+
+
+    private void closeAndCleanup() {
+        if (clearOwnerDim != null) {
+            Runnable toRun = clearOwnerDim;
+            clearOwnerDim = null;
+            try {
+                toRun.run();
+            } catch (Exception ignored) {}
+        }
+        if (onRefreshCallback != null) {
+            Runnable toRun = onRefreshCallback;
+            onRefreshCallback = null;
+            try {
+                toRun.run();
+            } catch (Exception ignored) {}
+        }
     }
 }

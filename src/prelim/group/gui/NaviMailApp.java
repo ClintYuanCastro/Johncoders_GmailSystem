@@ -250,7 +250,7 @@ public class NaviMailApp extends JFrame {
         sidebar.add(createNavItem("Sent", "sent.png", "SENT", false, null));
         sidebar.add(createNavItem("Drafts", "draft.png", "DRAFTS", false, null));
         sidebar.add(createNavItem("Important", "star.png", "IMPORTANT", false, null));
-        sidebar.add(createNavItem("Archive", "tag.png", "ARCHIVE", false, null));
+        sidebar.add(createNavItem("Archive", "archive.png", "ARCHIVE", false, null));
         sidebar.add(createNavItem("Trash", "trashbin.png", "TRASH", false, null));
         sidebar.add(createNavItem("Unread / Read", "snooze.png", "UNREAD", false, null));
 
@@ -943,6 +943,33 @@ public class NaviMailApp extends JFrame {
             } else if (type.contains("sent")) {
                 Polygon arrow = new Polygon(new int[]{2, size - 2, 2}, new int[]{size / 2, 2, size - 2}, 3);
                 g.fillPolygon(arrow);
+            } else if (type.contains("draft")) {
+                int x1 = 3, y1 = 2;
+                int x2 = size - 7, y2 = y1;
+                int x3 = size - 3, y3 = y1 + 4;
+                int x4 = x3, y4 = size - 2;
+                int x5 = x1, y5 = y4;
+                Polygon page = new Polygon(
+                    new int[]{x1, x2, x3, x4, x5},
+                    new int[]{y1, y2, y3, y4, y5},
+                    5
+                );
+                g.drawPolygon(page);
+                g.drawLine(x2, y1, x2, y3);
+                g.drawLine(x2, y3, x3, y3);
+                g.drawLine(x1 + 3, 9, x4 - 3, 9);
+                g.drawLine(x1 + 3, 12, x4 - 5, 12);
+            } else if (type.contains("archive") || type.contains("tag")) {
+                int bx = 2, by = 3;
+                int bw = size - 4, bh = 4;
+                g.drawRoundRect(bx, by, bw, bh, 2, 2);
+                g.drawLine(bx + 1, by + bh, bx + 1, size - 2);
+                g.drawLine(bx + 1, size - 2, bx + bw - 1, size - 2);
+                g.drawLine(bx + bw - 1, size - 2, bx + bw - 1, by + bh);
+                int midX = size / 2;
+                g.drawLine(midX, by + bh + 1, midX, size - 5);
+                g.drawLine(midX - 3, size - 7, midX, size - 4);
+                g.drawLine(midX + 3, size - 7, midX, size - 4);
             } else if (type.contains("star")) {
                 Polygon star = new Polygon();
                 for (int i = 0; i < 10; i++) {

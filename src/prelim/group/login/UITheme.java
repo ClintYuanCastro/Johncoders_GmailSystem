@@ -7,8 +7,10 @@ package prelim.group.login;
 import javax.swing.*;
 import javax.swing.border.AbstractBorder;
 import java.awt.*;
+import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 public final class UITheme {
@@ -88,15 +90,19 @@ public final class UITheme {
     }
 
     public static Runnable dimOwner(Window child) {
-        List<JWindow> overlays = new ArrayList<>();
-        Window owner = child == null ? null : child.getOwner();
+        if (child == null) {
+            return () -> {};
+        }
+
+        List<Runnable> restorations = new ArrayList<>();
+        Window owner = child.getOwner();
         while (owner != null) {
-            if (owner.isDisplayable()) {
-                Rectangle bounds = owner.getBounds();
-                Point location = owner.getLocationOnScreen();
-                JWindow overlay = new JWindow(owner);
-                overlay.setBackground(new Color(0, 0, 0, 0));
-                JPanel dimmer = new JPanel() {
+            final Window currOwner = owner;
+            if (currOwner instanceof RootPaneContainer rpc && currOwner.isDisplayable()) {
+                Component oldGlassPane = rpc.getGlassPane();
+                boolean oldVisible = oldGlassPane != null && oldGlassPane.isVisible();
+
+                JPanel dimGlassPane = new JPanel() {
                     @Override
                     protected void paintComponent(Graphics graphics) {
                         Graphics2D g = (Graphics2D) graphics.create();
@@ -105,17 +111,84 @@ public final class UITheme {
                         g.dispose();
                     }
                 };
-                dimmer.setOpaque(false);
-                overlay.setContentPane(dimmer);
-                overlay.setBounds(location.x, location.y, bounds.width, bounds.height);
-                overlay.setFocusableWindowState(false);
-                overlay.setAlwaysOnTop(false);
-                overlay.setVisible(true);
-                overlays.add(overlay);
+                dimGlassPane.setOpaque(false);
+
+                AtomicBoolean restored = new AtomicBoolean(false);
+                Runnable restoreThis = () -> {
+                    if (!restored.compareAndSet(false, true)) return;
+                    dimGlassPane.setVisible(false);
+                    if (oldGlassPane != null) {
+                        rpc.setGlassPane(oldGlassPane);
+                        oldGlassPane.setVisible(oldVisible);
+                    }
+                };
+
+                dimGlassPane.addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mousePressed(MouseEvent e) {
+                        if (!child.isShowing()) {
+                            restoreThis.run();
+                        } else {
+                            Toolkit.getDefaultToolkit().beep();
+                            child.toFront();
+                            child.requestFocus();
+                        }
+                    }
+                });
+
+                rpc.setGlassPane(dimGlassPane);
+                dimGlassPane.setVisible(true);
+                restorations.add(restoreThis);
             }
-            owner = owner.getOwner();
+            owner = currOwner.getOwner();
         }
-        return () -> overlays.forEach(Window::dispose);
+
+        AtomicBoolean cleanedUp = new AtomicBoolean(false);
+        Runnable cleanup = () -> {
+            if (!cleanedUp.compareAndSet(false, true)) return;
+            Runnable doAll = () -> {
+                for (Runnable r : restorations) {
+                    try {
+                        r.run();
+                    } catch (Exception ignored) {}
+                }
+                restorations.clear();
+            };
+            if (SwingUtilities.isEventDispatchThread()) {
+                doAll.run();
+            } else {
+                SwingUtilities.invokeLater(doAll);
+            }
+        };
+
+        child.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                cleanup.run();
+            }
+
+            @Override
+            public void windowClosed(WindowEvent e) {
+                cleanup.run();
+            }
+        });
+
+        child.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentHidden(ComponentEvent e) {
+                cleanup.run();
+            }
+        });
+
+        child.addHierarchyListener(e -> {
+            if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0) {
+                if (!child.isShowing()) {
+                    cleanup.run();
+                }
+            }
+        });
+
+        return cleanup;
     }
 
     private static int showDialog(Component parent, String message, String title, boolean confirm) {
@@ -124,6 +197,7 @@ public final class UITheme {
             : SwingUtilities.getWindowAncestor(parent);
         JDialog dialog = new JDialog(owner, title, Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setUndecorated(true);
+        dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         Runnable clearDim = dimOwner(dialog);
         JPanel surface = new JPanel(new BorderLayout()) {
             @Override
@@ -178,8 +252,18 @@ public final class UITheme {
         dialog.setContentPane(surface);
         dialog.setSize(confirm ? 340 : 380, 155);
         dialog.setLocationRelativeTo(parent);
-        dialog.setVisible(true);
-        clearDim.run();
+
+        dialog.getRootPane().registerKeyboardAction(
+            e -> dialog.dispose(),
+            KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
+            JComponent.WHEN_IN_FOCUSED_WINDOW
+        );
+
+        try {
+            dialog.setVisible(true);
+        } finally {
+            clearDim.run();
+        }
         return result[0];
     }
 
